@@ -94,6 +94,11 @@ export function PublicHeader() {
 
           {/* Quick Access to other portals for review */}
           <div className="pl-2 border-l border-border flex items-center gap-1.5">
+            <Link href="/kiosk" title="Kiosk Sirkulasi Mandiri Lobi">
+              <Badge className="cursor-pointer hover:opacity-80 text-[10px] bg-primary/15 text-primary border-primary/30">
+                ⚡ Kiosk Lobi
+              </Badge>
+            </Link>
             <Link href="/dashboard" title="Area Dasbor Anggota">
               <Badge variant="warning" className="cursor-pointer hover:opacity-80 text-[10px]">
                 Area Anggota
@@ -109,6 +114,11 @@ export function PublicHeader() {
 
         {/* Mobile Hamburger */}
         <div className="flex md:hidden items-center gap-2">
+          <Link href="/kiosk">
+            <Button size="sm" variant="outline" className="h-9 px-2.5 text-xs font-bold border-primary/40 text-primary">
+              Kiosk
+            </Button>
+          </Link>
           <Link href="/masuk">
             <Button variant="outline" size="sm" className="h-9 px-3 text-xs">
               Masuk
@@ -139,8 +149,13 @@ export function PublicHeader() {
               </Link>
             ))}
             <div className="pt-3 border-t border-border flex flex-col gap-2">
+              <Link href="/kiosk" onClick={() => setMobileMenuOpen(false)}>
+                <Button className="w-full justify-center bg-primary text-primary-foreground font-bold shadow-sm">
+                  ⚡ Terminal Kiosk Mandiri Lobi
+                </Button>
+              </Link>
               <Link href="/daftar" onClick={() => setMobileMenuOpen(false)}>
-                <Button className="w-full justify-center">Daftar Anggota Baru</Button>
+                <Button variant="outline" className="w-full justify-center">Daftar Anggota Baru</Button>
               </Link>
               <div className="grid grid-cols-2 gap-2 pt-2">
                 <Link href="/dashboard" onClick={() => setMobileMenuOpen(false)}>

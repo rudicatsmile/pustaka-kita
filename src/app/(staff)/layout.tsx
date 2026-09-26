@@ -23,6 +23,7 @@ import {
   ExternalLink,
   ChevronDown,
   Layers,
+  Sparkles,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -222,6 +223,12 @@ export default function StaffLayout({
           </div>
 
           <div className="flex items-center gap-2.5">
+            <Link href="/kiosk" target="_blank" title="Buka Terminal Kiosk Mandiri Lobi">
+              <Button size="sm" variant="outline" className="rounded-xl border-primary/40 text-primary text-xs font-bold gap-1.5 hover:bg-primary/10">
+                <Sparkles className="h-4 w-4" />
+                <span className="hidden lg:inline">Buka Kiosk Lobi</span>
+              </Button>
+            </Link>
             <Link href="/pustakawan/sirkulasi">
               <Button size="sm" variant="default" className="rounded-xl shadow-sm text-xs font-bold gap-1.5">
                 <ArrowLeftRight className="h-4 w-4" />

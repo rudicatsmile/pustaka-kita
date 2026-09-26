@@ -511,4 +511,156 @@ export async function lookupActiveLoanByCopyCodeAction(code: string) {
   return { success: false, error: `Tidak ada peminjaman aktif untuk kode eksemplar "${cleanCode}".` };
 }
 
+/**
+ * Mencari profil anggota untuk Kiosk Mandiri berdasarkan NIS/NIM atau scan barcode kartu.
+ */
+export async function kioskLookupMemberAction(identifier: string) {
+  const clean = identifier.trim();
+  if (!clean) return { success: false, error: "Harap masukkan NIS/NIM atau scan kartu anggota." };
+
+  if (db) {
+    try {
+      const member = await db.query.users.findFirst({
+        where: sql`lower(${schema.users.nisNim}) = lower(${clean}) or lower(${schema.users.id}) = lower(${clean})`,
+      });
+
+      if (!member) {
+        return { success: false, error: `Anggota dengan identitas "${clean}" tidak ditemukan di database perpustakaan.` };
+      }
+
+      // Hitung pinjaman aktif
+      const activeLoans = await db.query.loans.findMany({
+        where: and(
+          eq(schema.loans.memberId, member.id),
+          inArray(schema.loans.status, ["dipinjam", "terlambat"])
+        ),
+        with: { copy: { with: { book: true } } },
+      });
+
+      // Hitung denda belum lunas
+      const unpaidFines = await db.query.fines.findMany({
+        where: and(
+          eq(schema.fines.memberId, member.id),
+          eq(schema.fines.status, "belum_bayar")
+        ),
+      });
+
+      const totalFines = unpaidFines.reduce((acc, curr) => acc + Number(curr.amount || 0), 0);
+      const isBlocked = totalFines >= SYSTEM_CONFIG.fineBlockThreshold;
+      const remainingQuota = Math.max(0, SYSTEM_CONFIG.maxBooksPerMember - activeLoans.length);
+
+      return {
+        success: true,
+        member: {
+          id: member.id,
+          name: member.name,
+          nisNim: member.nisNim,
+          classOrMajor: member.classOrMajor,
+          phone: member.phoneWa,
+          activeLoansCount: activeLoans.length,
+          maxBooks: SYSTEM_CONFIG.maxBooksPerMember,
+          remainingQuota,
+          totalUnpaidFines: totalFines,
+          isBlocked,
+          blockReason: isBlocked
+            ? `Peminjaman ditolak sistem: Anda memiliki tunggakan denda Rp ${totalFines.toLocaleString("id-ID")} (Batas: Rp ${SYSTEM_CONFIG.fineBlockThreshold.toLocaleString("id-ID")}).`
+            : null,
+          activeLoans: activeLoans.map((l) => ({
+            id: l.id,
+            title: l.copy?.book?.title || "Buku",
+            copyCode: l.copy?.copyCode,
+            dueDate: l.dueDate.toISOString().split("T")[0],
+          })),
+        },
+      };
+    } catch (e: any) {
+      console.warn("DB kioskLookupMemberAction error, fallback:", e);
+    }
+  }
+
+  // Fallback ke dummy members
+  const dummy = DUMMY_MEMBERS.find(
+    (m) => m.nisNim.toLowerCase() === clean.toLowerCase() || m.id.toLowerCase() === clean.toLowerCase()
+  );
+  if (dummy) {
+    const fines = dummy.totalFinesUnpaid || 0;
+    const isBlocked = fines >= SYSTEM_CONFIG.fineBlockThreshold;
+    return {
+      success: true,
+      member: {
+        id: dummy.id,
+        name: dummy.name,
+        nisNim: dummy.nisNim,
+        classOrMajor: dummy.classOrMajor,
+        phone: dummy.phoneWa,
+        activeLoansCount: dummy.activeLoansCount,
+        maxBooks: SYSTEM_CONFIG.maxBooksPerMember,
+        remainingQuota: Math.max(0, SYSTEM_CONFIG.maxBooksPerMember - dummy.activeLoansCount),
+        totalUnpaidFines: fines,
+        isBlocked,
+        blockReason: isBlocked
+          ? `Peminjaman ditolak sistem: Anda memiliki tunggakan denda Rp ${fines.toLocaleString("id-ID")}.`
+          : null,
+        activeLoans: [],
+      },
+    };
+  }
+
+  return { success: false, error: `Anggota dengan identitas "${clean}" tidak ditemukan.` };
+}
+
+/**
+ * Memproses peminjaman banyak buku (multi-item cart) di Kiosk Sirkulasi Mandiri.
+ */
+export async function kioskBatchCheckoutAction(params: {
+  memberNisNim: string;
+  copyCodes: string[];
+}) {
+  const { memberNisNim, copyCodes } = params;
+  if (!copyCodes || copyCodes.length === 0) {
+    return { success: false, error: "Belum ada buku yang dipindai." };
+  }
+
+  const results: any[] = [];
+  const errors: string[] = [];
+
+  for (const code of copyCodes) {
+    const res = await borrowBookAction({
+      memberNisNim,
+      copyCode: code,
+      isSelfCheckout: true,
+    });
+
+    if (res.success) {
+      results.push(res.loan);
+    } else {
+      errors.push(`${code}: ${res.error}`);
+    }
+  }
+
+  if (results.length === 0) {
+    return {
+      success: false,
+      error: `Peminjaman gagal: ${errors.join("; ")}`,
+    };
+  }
+
+  revalidatePath("/kiosk");
+  revalidatePath("/dashboard");
+  revalidatePath("/pustakawan/sirkulasi");
+
+  const now = new Date();
+  const dueDate = new Date();
+  dueDate.setDate(now.getDate() + SYSTEM_CONFIG.loanDurationDays);
+
+  return {
+    success: true,
+    receiptNumber: `KSK-${now.getFullYear()}${(now.getMonth() + 1).toString().padStart(2, "0")}-${Math.floor(1000 + Math.random() * 9000)}`,
+    borrowedAt: now.toLocaleDateString("id-ID", { day: "numeric", month: "long", year: "numeric" }),
+    dueDate: dueDate.toLocaleDateString("id-ID", { day: "numeric", month: "long", year: "numeric" }),
+    successfulLoans: results,
+    errors: errors.length > 0 ? errors : undefined,
+  };
+}
+
 
