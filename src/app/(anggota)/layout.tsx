@@ -20,6 +20,7 @@ import {
   X,
   ExternalLink,
   Sparkles,
+  Trophy,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -70,6 +71,7 @@ export default function AnggotaLayout({
     { href: "/dashboard/scan", label: "Scan Mandiri", icon: QrCode, highlight: true },
     { href: "/dashboard/ebook", label: "Koleksi E-Book", icon: BookMarked },
     { href: "/dashboard/denda", label: "Denda & Bayar", icon: ReceiptText },
+    { href: "/dashboard/leaderboard", label: "Papan Peringkat", icon: Trophy, badge: "Top 10" },
     { href: "/dashboard/kartu", label: "Kartu Anggota", icon: CreditCard },
     { href: "/dashboard/profil", label: "Profil & Akun", icon: User },
   ];
@@ -151,6 +153,11 @@ export default function AnggotaLayout({
                 {item.highlight && !isActive && (
                   <Badge variant="warning" className="ml-auto text-[10px] py-0 px-1.5">
                     Scan
+                  </Badge>
+                )}
+                {item.badge && !isActive && (
+                  <Badge variant="default" className="ml-auto text-[10px] py-0 px-1.5 bg-amber-500 hover:bg-amber-600 text-white">
+                    {item.badge}
                   </Badge>
                 )}
               </Link>

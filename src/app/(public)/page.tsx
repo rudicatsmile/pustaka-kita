@@ -10,17 +10,24 @@ import {
   CheckCircle,
   Flame,
   ChevronRight,
+  Trophy,
+  Crown,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { getPublicHomeDataAction } from "@/actions/books";
+import { getLeaderboardAction } from "@/actions/gamification";
 import { HeroSearchForm } from "@/components/home/hero-search-form";
 
 export default async function HomePage() {
-  const { stats, books, featuredBook, categories } = await getPublicHomeDataAction();
+  const [{ stats, books, featuredBook, categories }, leaderboard] = await Promise.all([
+    getPublicHomeDataAction(),
+    getLeaderboardAction("month"),
+  ]);
   const displayBooks = books.slice(0, 4);
   const heroBook = featuredBook || books[0];
+  const topThree = leaderboard.topPodium;
 
   return (
     <div className="flex flex-col">
@@ -332,7 +339,98 @@ export default async function HomePage() {
         </div>
       </section>
 
-      {/* 5. Fitur Unggulan "PustakaKitaCeria" */}
+      {/* 5. Hall of Fame: Bintang Literasi Bulan Ini */}
+      {topThree && topThree.length >= 3 && (
+        <section className="py-16 sm:py-20 bg-linear-to-b from-background via-amber-500/5 to-background border-t border-border">
+          <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+            <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 mb-10">
+              <div>
+                <div className="inline-flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-amber-600 dark:text-amber-400 mb-2">
+                  <Trophy className="h-4 w-4" />
+                  <span>Gamifikasi & Prestasi Membaca</span>
+                </div>
+                <h2 className="font-heading text-2xl sm:text-3xl font-extrabold text-foreground">
+                  Bintang Literasi Bulan Ini 🌟
+                </h2>
+                <p className="text-sm text-muted-foreground mt-1">
+                  Apresiasi pembaca paling aktif dengan akumulasi poin membaca dan peminjaman tertinggi.
+                </p>
+              </div>
+              <Link href="/dashboard/leaderboard">
+                <Button variant="outline" size="sm" className="font-semibold gap-1.5 border-amber-500/40 text-amber-700 dark:text-amber-300 hover:bg-amber-500/10">
+                  Lihat Papan Peringkat Lengkap
+                  <ArrowRight className="h-4 w-4" />
+                </Button>
+              </Link>
+            </div>
+
+            {/* Top 3 Cards Grid */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              {/* Rank 2 */}
+              <div className="order-2 md:order-1 rounded-3xl border border-border/80 bg-card p-6 shadow-sm hover:border-slate-400/50 transition-all flex flex-col items-center text-center space-y-3">
+                <span className="px-3 py-1 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 font-bold text-xs border border-slate-300">
+                  🥈 Juara 2 Bulan Ini
+                </span>
+                <div className="h-16 w-16 rounded-full bg-slate-200 dark:bg-slate-700 flex items-center justify-center font-bold text-foreground text-lg shadow-sm border-2 border-slate-300">
+                  {topThree[1].name.split(" ").slice(0, 2).map((n) => n[0]).join("")}
+                </div>
+                <div>
+                  <h4 className="font-heading text-base font-bold text-foreground">{topThree[1].name}</h4>
+                  <p className="text-xs text-muted-foreground">{topThree[1].classOrMajor}</p>
+                </div>
+                <div className="pt-2 border-t border-border w-full flex justify-between text-xs text-muted-foreground">
+                  <span>{topThree[1].booksRead} Buku Dibaca</span>
+                  <span className="font-mono font-bold text-primary">{topThree[1].totalPoints} Poin</span>
+                </div>
+              </div>
+
+              {/* Rank 1 (Taller & Highlighted) */}
+              <div className="order-1 md:order-2 rounded-3xl border-2 border-amber-400 bg-linear-to-b from-amber-500/10 via-card to-card p-6 shadow-lg relative flex flex-col items-center text-center space-y-3 -translate-y-2">
+                <div className="absolute -top-4">
+                  <span className="px-3 py-1 rounded-full bg-amber-400 text-amber-950 font-bold text-xs flex items-center gap-1 shadow-sm">
+                    <Crown className="h-3.5 w-3.5 fill-amber-950" />
+                    Juara 1 Literasi
+                  </span>
+                </div>
+                <div className="h-20 w-20 rounded-full bg-amber-100 dark:bg-amber-950 border-4 border-amber-400 flex items-center justify-center font-bold text-amber-900 dark:text-amber-200 text-2xl shadow-md mt-2">
+                  {topThree[0].name.split(" ").slice(0, 2).map((n) => n[0]).join("")}
+                </div>
+                <div>
+                  <h4 className="font-heading text-lg font-bold text-foreground">{topThree[0].name}</h4>
+                  <p className="text-xs text-muted-foreground">{topThree[0].classOrMajor}</p>
+                  <Badge variant="default" className="text-[10px] mt-1.5 bg-amber-500 text-white font-bold">
+                    {topThree[0].levelTitle}
+                  </Badge>
+                </div>
+                <div className="pt-2 border-t border-amber-200 dark:border-amber-900/60 w-full flex justify-between text-xs text-muted-foreground">
+                  <span>{topThree[0].booksRead} Buku Dibaca</span>
+                  <span className="font-mono font-bold text-amber-600 text-sm">{topThree[0].totalPoints} Poin</span>
+                </div>
+              </div>
+
+              {/* Rank 3 */}
+              <div className="order-3 md:order-3 rounded-3xl border border-border/80 bg-card p-6 shadow-sm hover:border-amber-700/40 transition-all flex flex-col items-center text-center space-y-3">
+                <span className="px-3 py-1 rounded-full bg-amber-100/60 dark:bg-amber-950/40 text-amber-800 dark:text-amber-300 font-bold text-xs border border-amber-700/30">
+                  🥉 Juara 3 Bulan Ini
+                </span>
+                <div className="h-16 w-16 rounded-full bg-amber-100/50 dark:bg-amber-950/30 flex items-center justify-center font-bold text-foreground text-lg shadow-sm border-2 border-amber-700/40">
+                  {topThree[2].name.split(" ").slice(0, 2).map((n) => n[0]).join("")}
+                </div>
+                <div>
+                  <h4 className="font-heading text-base font-bold text-foreground">{topThree[2].name}</h4>
+                  <p className="text-xs text-muted-foreground">{topThree[2].classOrMajor}</p>
+                </div>
+                <div className="pt-2 border-t border-border w-full flex justify-between text-xs text-muted-foreground">
+                  <span>{topThree[2].booksRead} Buku Dibaca</span>
+                  <span className="font-mono font-bold text-primary">{topThree[2].totalPoints} Poin</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+      )}
+
+      {/* 6. Fitur Unggulan "PustakaKitaCeria" */}
       <section className="py-16 sm:py-20">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
           <div className="text-center max-w-2xl mx-auto mb-14">
