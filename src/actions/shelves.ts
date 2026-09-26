@@ -194,8 +194,8 @@ let SHELVES_STORE: MasterShelf[] = [
   },
 ];
 
-// Registri eksemplar buku riil per rak terstruktur berdasarkan DDC & kategori rak
-export const SHELF_BOOKS_REGISTRY: Record<
+// Registri eksemplar buku riil per rak terstruktur berdasarkan DDC & kategori rak (private store)
+const SHELF_BOOKS_REGISTRY: Record<
   string,
   { copyCode: string; title: string; author: string; status: "tersedia" | "dipinjam" | "perawatan" }[]
 > = {
@@ -289,9 +289,9 @@ export async function getMasterShelvesAction(params?: {
 }): Promise<MasterShelf[]> {
   const { zoneFilter, statusFilter, floorFilter } = params || {};
 
-  // Sinkronkan currentOccupancy dan status rak secara real-time dari jumlah buku riil di dalamnya
+  // Sinkronkan currentOccupancy dan status rak secara real-time dari registri rak
   for (const s of SHELVES_STORE) {
-    const books = await getShelfBooksListAction(s.code);
+    const books = SHELF_BOOKS_REGISTRY[s.code] || [];
     s.currentOccupancy = books.length;
     if (s.status !== "maintenance") {
       s.status = s.currentOccupancy >= s.capacity ? "penuh" : "aktif";
@@ -323,8 +323,7 @@ export async function getShelfByCodeAction(code: string): Promise<MasterShelf | 
     (s) => s.code.toLowerCase() === code.trim().toLowerCase()
   );
   if (shelf) {
-    const books = await getShelfBooksListAction(shelf.code);
-    shelf.currentOccupancy = books.length;
+    shelf.currentOccupancy = (SHELF_BOOKS_REGISTRY[shelf.code] || []).length;
     if (shelf.status !== "maintenance") {
       shelf.status = shelf.currentOccupancy >= shelf.capacity ? "penuh" : "aktif";
     }

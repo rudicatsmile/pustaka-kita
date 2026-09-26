@@ -96,13 +96,14 @@ export default function PustakawanMasterRakPage() {
         }),
         getShelfCapacityStatsAction(),
       ]);
-      setShelves(list);
-      setStats(st);
-      if (list.length > 0 && !selectedShelfForMap) {
+      setShelves(list || []);
+      if (st) setStats(st);
+      if (list && list.length > 0 && !selectedShelfForMap) {
         setSelectedShelfForMap(list[0]);
       }
     } catch (e: any) {
-      toast.error("Gagal memuat master rak:", { description: e.message });
+      console.error("Gagal memuat master rak:", e);
+      toast.error("Gagal memuat master rak:", { description: e?.message || "Terjadi kesalahan koneksi" });
     } finally {
       setIsLoading(false);
     }
