@@ -455,7 +455,7 @@ export default function PustakawanMasterRakPage() {
                             title="Lihat daftar buku di rak ini"
                           >
                             <BookOpen className="h-3 w-3 mr-1" />
-                            Isi Buku
+                            Isi Buku ({shelf.currentOccupancy})
                           </Button>
 
                           <Button
@@ -830,7 +830,7 @@ export default function PustakawanMasterRakPage() {
                       className="w-full text-xs font-bold gap-1.5 rounded-xl shadow-xs"
                     >
                       <BookOpen className="h-3.5 w-3.5" />
-                      Lihat Daftar Buku di Rak Ini
+                      Lihat Daftar Buku ({selectedShelfForMap.currentOccupancy} Eksemplar)
                     </Button>
 
                     <Button
@@ -1089,9 +1089,16 @@ export default function PustakawanMasterRakPage() {
                   <BookOpen className="h-4 w-4" />
                 </div>
                 <div>
-                  <h3 className="font-heading text-sm font-bold text-foreground">
-                    Daftar Koleksi di [{inspectingShelf.code}]
-                  </h3>
+                  <div className="flex items-center gap-2">
+                    <h3 className="font-heading text-sm font-bold text-foreground">
+                      Daftar Koleksi di [{inspectingShelf.code}]
+                    </h3>
+                    {!loadingBooks && (
+                      <Badge variant="outline" className="text-[10px] font-mono font-bold bg-primary/10 text-primary border-primary/20">
+                        {inspectingBooks.length} Eksemplar
+                      </Badge>
+                    )}
+                  </div>
                   <p className="text-[10px] text-muted-foreground">
                     {inspectingShelf.name} • {inspectingShelf.zone}
                   </p>
@@ -1112,28 +1119,36 @@ export default function PustakawanMasterRakPage() {
                   <Loader2 className="h-6 w-6 animate-spin text-primary mx-auto" />
                   <p className="text-muted-foreground text-xs">Memuat eksemplar di rak...</p>
                 </div>
+              ) : inspectingBooks.length === 0 ? (
+                <div className="py-8 text-center space-y-2 border border-dashed border-border rounded-2xl p-6 bg-muted/20">
+                  <BookOpen className="h-8 w-8 text-muted-foreground/40 mx-auto" />
+                  <p className="font-bold text-foreground text-xs">Belum Ada Koleksi di Rak Ini</p>
+                  <p className="text-muted-foreground text-[11px] max-w-xs mx-auto">
+                    Kapasitas rak ini {inspectingShelf.capacity} buku. Belum ada eksemplar yang ditempatkan di kode rak ini.
+                  </p>
+                </div>
               ) : (
                 <table className="w-full text-left text-xs">
-                  <thead className="bg-muted/50 border-b border-border text-muted-foreground uppercase text-[9px]">
+                  <thead className="bg-muted/50 border-b border-border text-muted-foreground uppercase text-[9px] sticky top-0 backdrop-blur-xs">
                     <tr>
                       <th className="px-3 py-2">Barcode</th>
-                      <th className="px-3 py-2">Judul Buku</th>
-                      <th className="px-3 py-2">Status</th>
+                      <th className="px-3 py-2">Judul Buku &amp; Pengarang</th>
+                      <th className="px-3 py-2 text-right">Status</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-border/60">
                     {inspectingBooks.map((b, i) => (
                       <tr key={i} className="hover:bg-muted/30">
-                        <td className="px-3 py-2 font-mono font-bold text-primary text-[11px]">
+                        <td className="px-3 py-2 font-mono font-bold text-primary text-[11px] whitespace-nowrap">
                           {b.copyCode}
                         </td>
                         <td className="px-3 py-2">
                           <p className="font-semibold text-foreground line-clamp-1">{b.title}</p>
                           <p className="text-[10px] text-muted-foreground">{b.author}</p>
                         </td>
-                        <td className="px-3 py-2">
+                        <td className="px-3 py-2 text-right whitespace-nowrap">
                           <Badge
-                            variant={b.status === "tersedia" ? "success" : "secondary"}
+                            variant={b.status === "tersedia" ? "success" : b.status === "dipinjam" ? "secondary" : "outline"}
                             className="text-[9px]"
                           >
                             {b.status}
