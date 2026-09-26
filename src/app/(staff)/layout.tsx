@@ -24,6 +24,7 @@ import {
   ChevronDown,
   Layers,
   Sparkles,
+  Boxes,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -41,6 +42,7 @@ export default function StaffLayout({
     { href: "/pustakawan/buku", label: "Katalog & Bibliografi", icon: BookCopy },
     { href: "/pustakawan/eksemplar", label: "Eksemplar & Barcode", icon: Barcode },
     { href: "/pustakawan/sirkulasi", label: "Sirkulasi Pinjam/Kembali", icon: ArrowLeftRight, highlight: true },
+    { href: "/pustakawan/stock-opname", label: "Stock Opname & Audit Rak", icon: Boxes },
     { href: "/pustakawan/reservasi", label: "Kelola Reservasi", icon: BookmarkCheck },
     { href: "/pustakawan/denda", label: "Verifikasi Denda Manual", icon: CheckCircle2, badge: "1 Menunggu" },
     { href: "/pustakawan/anggota", label: "Data Anggota", icon: Users },
