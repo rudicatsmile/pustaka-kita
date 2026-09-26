@@ -21,6 +21,7 @@ import {
   ExternalLink,
   Sparkles,
   Trophy,
+  Lightbulb,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -72,6 +73,7 @@ export default function AnggotaLayout({
     { href: "/dashboard/ebook", label: "Koleksi E-Book", icon: BookMarked },
     { href: "/dashboard/denda", label: "Denda & Bayar", icon: ReceiptText },
     { href: "/dashboard/leaderboard", label: "Papan Peringkat", icon: Trophy, badge: "Top 10" },
+    { href: "/dashboard/usulan", label: "Usulan Buku", icon: Lightbulb, badge: "Wishlist" },
     { href: "/dashboard/kartu", label: "Kartu Anggota", icon: CreditCard },
     { href: "/dashboard/profil", label: "Profil & Akun", icon: User },
   ];

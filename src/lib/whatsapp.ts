@@ -10,6 +10,7 @@ export type WhatsAppMessageType =
   | "fine_verified"
   | "fine_rejected"
   | "reservation_ready"
+  | "book_ready"
   | "account_suspended"
   | "test_message";
 

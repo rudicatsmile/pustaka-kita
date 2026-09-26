@@ -25,6 +25,7 @@ import {
   Layers,
   Sparkles,
   Boxes,
+  ShoppingCart,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -46,6 +47,7 @@ export default function StaffLayout({
     { href: "/pustakawan/reservasi", label: "Kelola Reservasi", icon: BookmarkCheck },
     { href: "/pustakawan/denda", label: "Verifikasi Denda Manual", icon: CheckCircle2, badge: "1 Menunggu" },
     { href: "/pustakawan/anggota", label: "Data Anggota", icon: Users },
+    { href: "/pustakawan/pengadaan", label: "Usulan & Pengadaan", icon: ShoppingCart, badge: "Wishlist" },
     { href: "/pustakawan/laporan", label: "Laporan & Akreditasi", icon: BarChart3, badge: "Borang SNP" },
   ];
 
