@@ -17,11 +17,13 @@ import { Card, CardContent } from "@/components/ui/card";
 import { toast } from "@/components/ui/sonner";
 import { createBookAction } from "@/actions/books";
 import { getAllCategoriesAction } from "@/actions/admin";
+import { getMasterShelvesAction, type MasterShelf } from "@/actions/shelves";
 import { useEffect } from "react";
 
 export default function TambahBukuBaruPage() {
   const router = useRouter();
   const [categories, setCategories] = useState<any[]>([]);
+  const [shelves, setShelves] = useState<MasterShelf[]>([]);
   const [title, setTitle] = useState("");
   const [author, setAuthor] = useState("");
   const [publisher, setPublisher] = useState("");
@@ -40,6 +42,12 @@ export default function TambahBukuBaruPage() {
       if (cats && cats.length > 0) {
         setCategories(cats);
         setCategory(cats[0].name);
+      }
+    });
+    getMasterShelvesAction().then((shs) => {
+      if (shs && shs.length > 0) {
+        setShelves(shs);
+        setShelfLocation(`${shs[0].code} (${shs[0].name})`);
       }
     });
   }, []);
@@ -184,13 +192,28 @@ export default function TambahBukuBaruPage() {
           {/* Lokasi Rak & Tipe Koleksi */}
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
             <div className="space-y-1.5">
-              <label className="text-xs font-bold text-foreground">Lokasi Rak Standar</label>
-              <Input
+              <div className="flex items-center justify-between">
+                <label className="text-xs font-bold text-foreground">Lokasi Lemari Rak *</label>
+                <Link
+                  href="/pustakawan/rak"
+                  target="_blank"
+                  className="text-[10px] text-primary hover:underline font-semibold"
+                >
+                  Kelola Rak
+                </Link>
+              </div>
+              <select
                 value={shelfLocation}
                 onChange={(e) => setShelfLocation(e.target.value)}
-                placeholder="Rak A-01"
-                className="font-mono text-xs"
-              />
+                className="w-full bg-background border border-border rounded-xl px-3 py-2 text-xs font-mono h-10 focus:ring-2 focus:ring-primary"
+              >
+                {shelves.map((s) => (
+                  <option key={s.id} value={`${s.code} (${s.name})`}>
+                    {s.code} - {s.name} [{s.currentOccupancy}/{s.capacity} buku]
+                  </option>
+                ))}
+                <option value="Rak Sementara (Belum Dipetakan)">Rak Sementara (Belum Dipetakan)</option>
+              </select>
             </div>
             <div className="space-y-1.5">
               <label className="text-xs font-bold text-foreground">Jumlah Halaman</label>

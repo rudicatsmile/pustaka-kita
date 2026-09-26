@@ -28,6 +28,7 @@ import {
   ShoppingCart,
   LifeBuoy,
   Brain,
+  MapPin,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -46,6 +47,7 @@ export default function StaffLayout({
     { href: "/pustakawan/eksemplar", label: "Eksemplar & Barcode", icon: Barcode },
     { href: "/pustakawan/sirkulasi", label: "Sirkulasi Pinjam/Kembali", icon: ArrowLeftRight, highlight: true },
     { href: "/pustakawan/stock-opname", label: "Stock Opname & Audit Rak", icon: Boxes },
+    { href: "/pustakawan/rak", label: "Master Rak & Denah", icon: MapPin, badge: "Denah" },
     { href: "/pustakawan/reservasi", label: "Kelola Reservasi", icon: BookmarkCheck },
     { href: "/pustakawan/denda", label: "Verifikasi Denda Manual", icon: CheckCircle2, badge: "1 Menunggu" },
     { href: "/pustakawan/anggota", label: "Data Anggota", icon: Users },
@@ -60,6 +62,7 @@ export default function StaffLayout({
     { href: "/admin", label: "Dasbor Admin", icon: Shield },
     { href: "/admin/pengguna", label: "Kelola Pengguna & Role", icon: Users },
     { href: "/admin/kategori", label: "Kelola Kategori Buku", icon: Layers },
+    { href: "/pustakawan/rak", label: "Master Data Rak & Denah", icon: MapPin },
     { href: "/admin/pengaturan", label: "Pengaturan Sistem & Tarif", icon: Settings },
     { href: "/admin/whatsapp", label: "WhatsApp Gateway", icon: MessageSquare },
     { href: "/admin/notifikasi", label: "Pusat & Log Notifikasi", icon: BellRing },

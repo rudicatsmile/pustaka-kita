@@ -31,6 +31,7 @@ import {
   convertProposalToCatalogAction,
   type BookWishlistProposal,
 } from "@/actions/wishlist";
+import { getMasterShelvesAction, type MasterShelf } from "@/actions/shelves";
 
 export default function PustakawanPengadaanPage() {
   const [proposals, setProposals] = useState<BookWishlistProposal[]>([]);
@@ -44,11 +45,12 @@ export default function PustakawanPengadaanPage() {
   const [statusFilter, setStatusFilter] = useState("all");
   const [searchQuery, setSearchQuery] = useState("");
   const [isLoading, setIsLoading] = useState(true);
+  const [masterShelves, setMasterShelves] = useState<MasterShelf[]>([]);
 
   // Convert to Catalog Modal State
   const [selectedProposalForConvert, setSelectedProposalForConvert] =
     useState<BookWishlistProposal | null>(null);
-  const [shelfLocation, setShelfLocation] = useState("Rak Koleksi Baru (A-01)");
+  const [shelfLocation, setShelfLocation] = useState("RAK-D01 (Koleksi Baru)");
   const [copyCode, setCopyCode] = useState("");
   const [isConverting, setIsConverting] = useState(false);
 
@@ -58,12 +60,17 @@ export default function PustakawanPengadaanPage() {
   const loadData = async () => {
     setIsLoading(true);
     try {
-      const [list, st] = await Promise.all([
+      const [list, st, shs] = await Promise.all([
         getWishlistProposalsAction({ sortBy: "votes", statusFilter }),
         getWishlistStatsAction(),
+        getMasterShelvesAction(),
       ]);
       setProposals(list);
       setStats(st);
+      setMasterShelves(shs);
+      if (shs.length > 0 && !shelfLocation) {
+        setShelfLocation(`${shs[0].code} (${shs[0].name})`);
+      }
     } catch (e: any) {
       toast.error("Gagal memuat data pengadaan:", { description: e.message });
     } finally {
@@ -470,14 +477,19 @@ export default function PustakawanPengadaanPage() {
               </div>
 
               <div className="space-y-1">
-                <label className="font-bold text-foreground">Lokasi Penempatan Rak *</label>
-                <Input
-                  required
+                <label className="font-bold text-foreground">Lokasi Penempatan Lemari Rak *</label>
+                <select
                   value={shelfLocation}
                   onChange={(e) => setShelfLocation(e.target.value)}
-                  placeholder="Contoh: Rak B-02 (Koleksi Baru)"
-                  className="text-xs h-9 rounded-xl"
-                />
+                  className="w-full bg-background border border-border rounded-xl px-3 py-2 text-xs font-mono h-9 focus:ring-2 focus:ring-primary"
+                >
+                  {masterShelves.map((s) => (
+                    <option key={s.id} value={`${s.code} (${s.name})`}>
+                      {s.code} - {s.name} ({s.zone}) [{s.currentOccupancy}/{s.capacity}]
+                    </option>
+                  ))}
+                  <option value="Rak Sementara (Belum Dipetakan)">Rak Sementara (Belum Dipetakan)</option>
+                </select>
               </div>
 
               <div className="p-2.5 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-[11px] text-emerald-950 dark:text-emerald-200">
