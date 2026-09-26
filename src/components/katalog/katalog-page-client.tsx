@@ -15,6 +15,8 @@ import {
   BookMarked,
   SlidersHorizontal,
   X,
+  Sparkles,
+  Bot,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -22,6 +24,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { BookItem } from "@/types";
 import { getBooksAction } from "@/actions/books";
+import { semanticSearchBooksAction } from "@/actions/ai-librarian";
 import { useEffect } from "react";
 
 interface CategoryOption {
@@ -61,9 +64,44 @@ export function KatalogPageClient({
   const [availabilityFilter, setAvailabilityFilter] = useState<"semua" | "tersedia" | "ebook">("semua");
   const [sortBy, setSortBy] = useState<"terbaru" | "populer" | "judul">("populer");
 
+  // AI Semantic Search State
+  const [isAiMode, setIsAiMode] = useState(false);
+  const [aiSummary, setAiSummary] = useState<string | null>(null);
+  const [isAiSearching, setIsAiSearching] = useState(false);
+  const [aiMatchedIds, setAiMatchedIds] = useState<string[]>([]);
+
+  const handleAiSearch = async (queryText: string) => {
+    const q = queryText.trim();
+    if (!q) return;
+    setIsAiSearching(true);
+    try {
+      const res = await semanticSearchBooksAction(q);
+      if (res.success) {
+        setAiSummary(res.summary);
+        setAiMatchedIds(res.results.map((r: any) => r.id));
+      }
+    } catch (e) {
+      console.error("AI search error:", e);
+    } finally {
+      setIsAiSearching(false);
+    }
+  };
+
+  const handleResetAiMode = () => {
+    setIsAiMode(false);
+    setAiSummary(null);
+    setAiMatchedIds([]);
+    setSearch("");
+  };
+
   const filteredBooks = useMemo(() => {
     return books.filter((book) => {
-      // Filter teks
+      // Jika mode AI aktif dan ada hasil pencocokan AI
+      if (isAiMode && aiMatchedIds.length > 0) {
+        return aiMatchedIds.includes(book.id);
+      }
+
+      // Filter teks standar
       const matchSearch =
         book.title.toLowerCase().includes(search.toLowerCase()) ||
         book.author.toLowerCase().includes(search.toLowerCase()) ||
@@ -88,7 +126,7 @@ export function KatalogPageClient({
       if (sortBy === "judul") return a.title.localeCompare(b.title);
       return 0;
     });
-  }, [books, search, selectedCategory, availabilityFilter, sortBy]);
+  }, [books, search, selectedCategory, availabilityFilter, sortBy, isAiMode, aiMatchedIds]);
 
   return (
     <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8 space-y-8">
@@ -105,25 +143,101 @@ export function KatalogPageClient({
 
       {/* Main Search & Filter Bar */}
       <div className="rounded-3xl border border-border/80 bg-card p-4 sm:p-6 shadow-sm space-y-4">
+        {/* Search Mode Toggle (Standar vs Mode AI) */}
+        <div className="flex items-center justify-between pb-1 border-b border-border/60">
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => {
+                if (isAiMode) handleResetAiMode();
+              }}
+              className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all ${
+                !isAiMode
+                  ? "bg-muted text-foreground shadow-sm"
+                  : "text-muted-foreground hover:text-foreground"
+              }`}
+            >
+              Pencarian Kata Kunci
+            </button>
+            <button
+              onClick={() => {
+                setIsAiMode(true);
+                if (search.trim()) handleAiSearch(search);
+              }}
+              className={`px-3.5 py-1.5 rounded-xl text-xs font-bold flex items-center gap-1.5 transition-all ${
+                isAiMode
+                  ? "bg-gradient-to-r from-primary to-teal-700 text-white shadow-md shadow-primary/20"
+                  : "text-primary hover:bg-primary/10"
+              }`}
+            >
+              <Sparkles className="h-3.5 w-3.5" />
+              <span>✨ Mode Cerdas AI (Semantik)</span>
+            </button>
+          </div>
+
+          {isAiMode && (
+            <Badge variant="outline" className="text-[10px] border-primary/30 text-primary">
+              AI Powered by Gemini & Hybrid Semantic Engine
+            </Badge>
+          )}
+        </div>
+
         <div className="flex flex-col sm:flex-row gap-3">
-          <div className="relative flex-1">
-            <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          <form
+            onSubmit={(e) => {
+              e.preventDefault();
+              if (isAiMode) handleAiSearch(search);
+            }}
+            className="relative flex-1"
+          >
+            {isAiMode ? (
+              <Sparkles className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-primary animate-pulse" />
+            ) : (
+              <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            )}
             <Input
               type="text"
-              placeholder="Cari judul buku, nama penulis (contoh: Pramoedya), atau nomor ISBN..."
+              placeholder={
+                isAiMode
+                  ? "Tanya AI dalam bahasa alami: 'Buku fisika kuantum pemula', 'Novel misteri yang seru'..."
+                  : "Cari judul buku, nama penulis (contoh: Pramoedya), atau nomor ISBN..."
+              }
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              className="pl-10 h-11 text-sm bg-background/50 rounded-2xl"
+              className={`pl-10 pr-24 h-11 text-sm rounded-2xl transition-all ${
+                isAiMode
+                  ? "bg-primary/5 border-primary/50 text-foreground focus:ring-primary"
+                  : "bg-background/50 border-border"
+              }`}
             />
-            {search && (
-              <button
-                onClick={() => setSearch("")}
-                className="absolute right-3.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
-              >
-                <X className="h-4 w-4" />
-              </button>
-            )}
-          </div>
+            <div className="absolute right-2 top-1/2 -translate-y-1/2 flex items-center gap-1">
+              {search && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setSearch("");
+                    if (isAiMode) {
+                      setAiSummary(null);
+                      setAiMatchedIds([]);
+                    }
+                  }}
+                  className="p-1 text-muted-foreground hover:text-foreground"
+                >
+                  <X className="h-4 w-4" />
+                </button>
+              )}
+              {isAiMode && (
+                <Button
+                  type="submit"
+                  disabled={isAiSearching || !search.trim()}
+                  size="sm"
+                  className="h-8 px-3 text-xs font-bold rounded-xl gap-1 shadow-sm"
+                >
+                  <Sparkles className="h-3 w-3" />
+                  {isAiSearching ? "Menganalisis..." : "Tanya AI"}
+                </Button>
+              )}
+            </div>
+          </form>
 
           <div className="flex gap-2">
             <select
@@ -138,43 +252,95 @@ export function KatalogPageClient({
           </div>
         </div>
 
-        {/* Quick Filter Badges */}
-        <div className="flex flex-wrap items-center gap-2 pt-2 border-t border-border/60">
-          <span className="text-xs font-semibold text-muted-foreground flex items-center gap-1 mr-1">
-            <Filter className="h-3 w-3" /> Filter Cepat:
-          </span>
-          <button
-            onClick={() => setAvailabilityFilter("semua")}
-            className={`px-3 py-1 rounded-full text-xs font-bold transition-colors ${
-              availabilityFilter === "semua"
-                ? "bg-primary text-primary-foreground shadow-sm"
-                : "bg-muted text-muted-foreground hover:bg-muted/80"
-            }`}
-          >
-            Semua Format
-          </button>
-          <button
-            onClick={() => setAvailabilityFilter("tersedia")}
-            className={`px-3 py-1 rounded-full text-xs font-bold transition-colors ${
-              availabilityFilter === "tersedia"
-                ? "bg-emerald-600 text-white shadow-sm"
-                : "bg-muted text-muted-foreground hover:bg-muted/80"
-            }`}
-          >
-            🟢 Eksemplar Tersedia
-          </button>
-          <button
-            onClick={() => setAvailabilityFilter("ebook")}
-            className={`px-3 py-1 rounded-full text-xs font-bold transition-colors ${
-              availabilityFilter === "ebook"
-                ? "bg-secondary text-secondary-foreground shadow-sm"
-                : "bg-muted text-muted-foreground hover:bg-muted/80"
-            }`}
-          >
-            📱 E-Book Digital
-          </button>
-        </div>
+        {/* Quick Filter Badges or AI Suggestions */}
+        {isAiMode ? (
+          <div className="flex flex-wrap items-center gap-1.5 pt-2 border-t border-border/60 text-xs">
+            <span className="text-muted-foreground mr-1 text-[11px] font-semibold">💡 Coba tanyakan topik ini:</span>
+            {[
+              "Rekomendasi novel fiksi terbaik",
+              "Buku pemrograman web pemula",
+              "Buku sains tentang antariksa dan kosmos",
+              "Buku sejarah pergerakan Indonesia",
+            ].map((suggested, idx) => (
+              <button
+                key={idx}
+                type="button"
+                onClick={() => {
+                  setSearch(suggested);
+                  handleAiSearch(suggested);
+                }}
+                className="rounded-full border border-primary/30 bg-primary/5 px-2.5 py-1 text-[10px] font-medium text-primary hover:bg-primary/10 transition-colors"
+              >
+                {suggested}
+              </button>
+            ))}
+          </div>
+        ) : (
+          <div className="flex flex-wrap items-center gap-2 pt-2 border-t border-border/60">
+            <span className="text-xs font-semibold text-muted-foreground flex items-center gap-1 mr-1">
+              <Filter className="h-3 w-3" /> Filter Cepat:
+            </span>
+            <button
+              onClick={() => setAvailabilityFilter("semua")}
+              className={`px-3 py-1 rounded-full text-xs font-bold transition-colors ${
+                availabilityFilter === "semua"
+                  ? "bg-primary text-primary-foreground shadow-sm"
+                  : "bg-muted text-muted-foreground hover:bg-muted/80"
+              }`}
+            >
+              Semua Format
+            </button>
+            <button
+              onClick={() => setAvailabilityFilter("tersedia")}
+              className={`px-3 py-1 rounded-full text-xs font-bold transition-colors ${
+                availabilityFilter === "tersedia"
+                  ? "bg-emerald-600 text-white shadow-sm"
+                  : "bg-muted text-muted-foreground hover:bg-muted/80"
+              }`}
+            >
+              🟢 Eksemplar Tersedia
+            </button>
+            <button
+              onClick={() => setAvailabilityFilter("ebook")}
+              className={`px-3 py-1 rounded-full text-xs font-bold transition-colors ${
+                availabilityFilter === "ebook"
+                  ? "bg-secondary text-secondary-foreground shadow-sm"
+                  : "bg-muted text-muted-foreground hover:bg-muted/80"
+              }`}
+            >
+              📱 E-Book Digital
+            </button>
+          </div>
+        )}
       </div>
+
+      {/* AI Smart Insight Banner (If active & returned) */}
+      {isAiMode && aiSummary && (
+        <div className="p-5 rounded-3xl border border-primary/40 bg-gradient-to-r from-primary/10 via-card to-card shadow-lg space-y-2 animate-in fade-in duration-300">
+          <div className="flex items-center justify-between">
+            <span className="font-heading font-extrabold text-sm text-primary flex items-center gap-2">
+              <Bot className="h-5 w-5" />
+              Rekomendasi Pustakawan AI
+            </span>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={handleResetAiMode}
+              className="h-7 text-xs text-muted-foreground hover:text-foreground"
+            >
+              Kembali ke Semua Koleksi
+            </Button>
+          </div>
+          <p className="text-xs text-foreground leading-relaxed whitespace-pre-line">
+            {aiSummary}
+          </p>
+          {aiMatchedIds.length > 0 && (
+            <p className="text-[11px] font-mono font-bold text-muted-foreground pt-1">
+              Menampilkan {filteredBooks.length} buku teratas yang cocok dengan minat Anda di bawah ini:
+            </p>
+          )}
+        </div>
+      )}
 
       {/* Grid Layout: Sidebar Categories + Book Cards */}
       <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">

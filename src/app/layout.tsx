@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import { Plus_Jakarta_Sans, Inter, JetBrains_Mono } from "next/font/google";
 import { Toaster } from "@/components/ui/sonner";
 import { PwaInstaller } from "@/components/pwa/pwa-installer";
+import { AiLibrarianChat } from "@/components/ai/ai-librarian-chat";
 import "./globals.css";
 
 const plusJakartaSans = Plus_Jakarta_Sans({
@@ -72,6 +73,7 @@ export default function RootLayout({
       <body className="min-h-screen bg-background text-foreground antialiased font-sans flex flex-col selection:bg-primary/20 selection:text-primary">
         {children}
         <PwaInstaller />
+        <AiLibrarianChat />
         <Toaster position="top-center" richColors closeButton />
       </body>
     </html>
