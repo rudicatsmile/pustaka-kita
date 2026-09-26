@@ -23,9 +23,15 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { DUMMY_LOANS } from "@/data/dummy";
+import { getAllLoansAction } from "@/actions/circulation";
+import { useEffect, useState } from "react";
 
 export default function SirkulasiHubPage() {
+  const [loans, setLoans] = useState<any[]>([]);
+
+  useEffect(() => {
+    getAllLoansAction().then((data) => setLoans(data));
+  }, []);
   return (
     <div className="space-y-8">
       <div>
@@ -107,7 +113,7 @@ export default function SirkulasiHubPage() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {DUMMY_LOANS.map((l) => (
+              {loans.map((l) => (
                 <TableRow key={l.id}>
                   <TableCell className="font-heading font-bold text-xs">{l.memberName}</TableCell>
                   <TableCell className="font-mono text-xs text-muted-foreground">

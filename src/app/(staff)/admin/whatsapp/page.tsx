@@ -2,25 +2,20 @@
 
 import { useState } from "react";
 import {
-  MessageSquare,
   Send,
   Key,
-  Phone,
-  CheckCircle2,
-  Sparkles,
-  RefreshCw,
+  BadgeCheck,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Card, CardContent } from "@/components/ui/card";
+import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { SYSTEM_CONFIG } from "@/data/dummy";
 import { toast } from "@/components/ui/sonner";
 import { sendTestWhatsAppAction, saveWhatsAppConfigAction } from "@/actions/whatsapp";
 
 export default function WhatsAppConfigPage() {
   const [apiKey, setApiKey] = useState("fonnte_sec_token_9921827471928");
-  const [senderNumber, setSenderNumber] = useState(SYSTEM_CONFIG.whatsappSenderNumber);
+  const [senderNumber, setSenderNumber] = useState("081298765432");
   const [testNumber, setTestNumber] = useState("081234567890");
   const [testMessage, setTestMessage] = useState(
     "Halo! 📚 Ini adalah pesan uji coba integrasi WhatsApp Gateway PustakaKitaCeria. Sistem berjalan normal!"

@@ -1,16 +1,12 @@
 "use client";
 
-import { useState } from "react";
-import Image from "next/image";
+import { useState, useEffect } from "react";
 import {
   CheckCircle2,
   XCircle,
   Eye,
-  Receipt,
-  Search,
-  Filter,
-  CreditCard,
-  Sparkles,
+  Loader2,
+  RefreshCw,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -32,18 +28,36 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { DUMMY_FINES, FineItem } from "@/data/dummy";
 import { toast } from "@/components/ui/sonner";
-
-import { verifyFineAction } from "@/actions/fines";
+import { FineItem } from "@/types";
+import { getAllFinesAction, verifyFineAction } from "@/actions/fines";
 
 export default function VerifikasiDendaPage() {
-  const [fines, setFines] = useState<FineItem[]>(DUMMY_FINES);
+  const [fines, setFines] = useState<FineItem[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
   const [selectedProofItem, setSelectedProofItem] = useState<FineItem | null>(null);
   const [rejectModalItem, setRejectModalItem] = useState<FineItem | null>(null);
   const [rejectReason, setRejectReason] = useState("Nominal transfer tidak sesuai dengan tagihan");
+  const [isProcessing, setIsProcessing] = useState(false);
+
+  async function loadFines() {
+    setIsLoading(true);
+    try {
+      const data = await getAllFinesAction("semua");
+      setFines(data as FineItem[]);
+    } catch (e: any) {
+      toast.error("Gagal memuat daftar denda: " + (e.message || "Error"));
+    } finally {
+      setIsLoading(false);
+    }
+  }
+
+  useEffect(() => {
+    loadFines();
+  }, []);
 
   const handleApprove = async (item: FineItem) => {
+    setIsProcessing(true);
     try {
       const res = await verifyFineAction({
         fineId: item.id,
@@ -62,11 +76,14 @@ export default function VerifikasiDendaPage() {
       });
     } catch (e: any) {
       toast.error("Gagal memverifikasi denda:", { description: e.message });
+    } finally {
+      setIsProcessing(false);
     }
   };
 
   const handleReject = async () => {
     if (!rejectModalItem) return;
+    setIsProcessing(true);
     try {
       const res = await verifyFineAction({
         fineId: rejectModalItem.id,
@@ -85,6 +102,8 @@ export default function VerifikasiDendaPage() {
       setRejectModalItem(null);
     } catch (e: any) {
       toast.error("Gagal menolak denda:", { description: e.message });
+    } finally {
+      setIsProcessing(false);
     }
   };
 
@@ -99,104 +118,131 @@ export default function VerifikasiDendaPage() {
             Periksa keabsahan slip transfer bank yang diunggah anggota sebelum mengubah status menjadi lunas.
           </p>
         </div>
+        <Button
+          onClick={loadFines}
+          variant="outline"
+          size="sm"
+          disabled={isLoading}
+          className="h-9 gap-1.5 text-xs font-semibold self-start sm:self-auto"
+        >
+          <RefreshCw className={`h-3.5 w-3.5 ${isLoading ? "animate-spin" : ""}`} />
+          Segarkan Data
+        </Button>
       </div>
 
       {/* DataTable Denda */}
       <Card className="rounded-2xl border border-border shadow-sm overflow-hidden">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead className="text-xs">Anggota (NIS/NIM)</TableHead>
-              <TableHead className="text-xs">Buku & Hari Telat</TableHead>
-              <TableHead className="text-xs">Nominal</TableHead>
-              <TableHead className="text-xs">Bukti Transfer</TableHead>
-              <TableHead className="text-xs">Status</TableHead>
-              <TableHead className="text-xs text-right">Tindakan Pustakawan</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {fines.map((item) => (
-              <TableRow key={item.id}>
-                <TableCell>
-                  <p className="font-heading font-bold text-xs text-foreground">
-                    {item.memberName}
-                  </p>
-                  <p className="font-mono text-[11px] text-muted-foreground">{item.memberNisNim}</p>
-                </TableCell>
-                <TableCell className="text-xs">
-                  <p className="font-semibold text-foreground">{item.bookTitle}</p>
-                  <p className="text-[11px] text-rose-600 font-medium">
-                    {item.daysLate} hari terlambat
-                  </p>
-                </TableCell>
-                <TableCell className="font-mono text-xs font-bold text-foreground">
-                  Rp {item.amount.toLocaleString("id-ID")}
-                </TableCell>
-                <TableCell>
-                  {item.proofUrl ? (
-                    <button
-                      onClick={() => setSelectedProofItem(item)}
-                      className="group flex items-center gap-1.5 text-xs text-primary hover:underline font-semibold"
-                    >
-                      <Eye className="h-3.5 w-3.5" />
-                      <span>Lihat Foto Slip</span>
-                    </button>
-                  ) : (
-                    <span className="text-xs text-muted-foreground">Belum upload</span>
-                  )}
-                </TableCell>
-                <TableCell>
-                  <Badge
-                    variant={
-                      item.status === "lunas"
-                        ? "success"
-                        : item.status === "menunggu_verifikasi"
-                        ? "warning"
-                        : "destructive"
-                    }
-                    className="text-[10px]"
-                  >
-                    {item.status === "lunas"
-                      ? "Lunas"
-                      : item.status === "menunggu_verifikasi"
-                      ? "Menunggu Verifikasi"
-                      : "Belum Bayar"}
-                  </Badge>
-                </TableCell>
-                <TableCell className="text-right">
-                  {item.status === "menunggu_verifikasi" ? (
-                    <div className="flex items-center justify-end gap-1.5">
-                      <Button
-                        onClick={() => handleApprove(item)}
-                        size="sm"
-                        className="text-xs font-bold h-8 px-2.5 bg-emerald-600 hover:bg-emerald-700 text-white gap-1"
-                      >
-                        <CheckCircle2 className="h-3.5 w-3.5" />
-                        Setujui (Approve)
-                      </Button>
-                      <Button
-                        onClick={() => setRejectModalItem(item)}
-                        variant="outline"
-                        size="sm"
-                        className="text-xs font-bold h-8 px-2.5 text-rose-600 border-rose-200 hover:bg-rose-50"
-                      >
-                        <XCircle className="h-3.5 w-3.5" />
-                        Tolak
-                      </Button>
-                    </div>
-                  ) : item.status === "lunas" ? (
-                    <div className="text-right text-[11px] text-muted-foreground">
-                      <p>Diverifikasi:</p>
-                      <p className="font-semibold text-emerald-700">{item.verifiedBy}</p>
-                    </div>
-                  ) : (
-                    <span className="text-xs text-muted-foreground">Menunggu Siswa</span>
-                  )}
-                </TableCell>
+        {isLoading ? (
+          <div className="flex h-48 items-center justify-center">
+            <Loader2 className="h-6 w-6 animate-spin text-primary" />
+            <span className="ml-2 text-xs text-muted-foreground">Memuat tagihan denda...</span>
+          </div>
+        ) : (
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead className="text-xs">Anggota (NIS/NIM)</TableHead>
+                <TableHead className="text-xs">Buku & Hari Telat</TableHead>
+                <TableHead className="text-xs">Nominal</TableHead>
+                <TableHead className="text-xs">Bukti Transfer</TableHead>
+                <TableHead className="text-xs">Status</TableHead>
+                <TableHead className="text-xs text-right">Tindakan Pustakawan</TableHead>
               </TableRow>
-            ))}
-          </TableBody>
-        </Table>
+            </TableHeader>
+            <TableBody>
+              {fines.length === 0 ? (
+                <TableRow>
+                  <TableCell colSpan={6} className="text-center text-xs text-muted-foreground py-8">
+                    Tidak ada catatan denda keterlambatan saat ini.
+                  </TableCell>
+                </TableRow>
+              ) : (
+                fines.map((item) => (
+                  <TableRow key={item.id}>
+                    <TableCell>
+                      <p className="font-heading font-bold text-xs text-foreground">
+                        {item.memberName}
+                      </p>
+                      <p className="font-mono text-[11px] text-muted-foreground">{item.memberNisNim}</p>
+                    </TableCell>
+                    <TableCell className="text-xs">
+                      <p className="font-semibold text-foreground">{item.bookTitle}</p>
+                      <p className="text-[11px] text-rose-600 font-medium">
+                        {item.daysLate} hari terlambat
+                      </p>
+                    </TableCell>
+                    <TableCell className="font-mono text-xs font-bold text-foreground">
+                      Rp {item.amount.toLocaleString("id-ID")}
+                    </TableCell>
+                    <TableCell>
+                      {item.proofUrl ? (
+                        <button
+                          onClick={() => setSelectedProofItem(item)}
+                          className="group flex items-center gap-1.5 text-xs text-primary hover:underline font-semibold"
+                        >
+                          <Eye className="h-3.5 w-3.5" />
+                          <span>Lihat Foto Slip</span>
+                        </button>
+                      ) : (
+                        <span className="text-xs text-muted-foreground">Belum upload</span>
+                      )}
+                    </TableCell>
+                    <TableCell>
+                      <Badge
+                        variant={
+                          item.status === "lunas"
+                            ? "success"
+                            : item.status === "menunggu_verifikasi"
+                            ? "warning"
+                            : "destructive"
+                        }
+                        className="text-[10px]"
+                      >
+                        {item.status === "lunas"
+                          ? "Lunas"
+                          : item.status === "menunggu_verifikasi"
+                          ? "Menunggu Verifikasi"
+                          : "Belum Bayar"}
+                      </Badge>
+                    </TableCell>
+                    <TableCell className="text-right">
+                      {item.status === "menunggu_verifikasi" ? (
+                        <div className="flex items-center justify-end gap-1.5">
+                          <Button
+                            onClick={() => handleApprove(item)}
+                            size="sm"
+                            disabled={isProcessing}
+                            className="text-xs font-bold h-8 px-2.5 bg-emerald-600 hover:bg-emerald-700 text-white gap-1"
+                          >
+                            <CheckCircle2 className="h-3.5 w-3.5" />
+                            Setujui
+                          </Button>
+                          <Button
+                            onClick={() => setRejectModalItem(item)}
+                            variant="outline"
+                            size="sm"
+                            disabled={isProcessing}
+                            className="text-xs font-bold h-8 px-2.5 text-rose-600 border-rose-200 hover:bg-rose-50"
+                          >
+                            <XCircle className="h-3.5 w-3.5" />
+                            Tolak
+                          </Button>
+                        </div>
+                      ) : item.status === "lunas" ? (
+                        <div className="text-right text-[11px] text-muted-foreground">
+                          <p>Diverifikasi:</p>
+                          <p className="font-semibold text-emerald-700">{item.verifiedBy || "Petugas"}</p>
+                        </div>
+                      ) : (
+                        <span className="text-xs text-muted-foreground">Menunggu Siswa</span>
+                      )}
+                    </TableCell>
+                  </TableRow>
+                ))
+              )}
+            </TableBody>
+          </Table>
+        )}
       </Card>
 
       {/* Modal Preview Bukti Transfer Lengkap dengan Action */}
@@ -258,6 +304,7 @@ export default function VerifikasiDendaPage() {
                 </Button>
                 <Button
                   onClick={() => handleApprove(selectedProofItem)}
+                  disabled={isProcessing}
                   className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold"
                 >
                   Setujui & Tandai Lunas
@@ -291,7 +338,7 @@ export default function VerifikasiDendaPage() {
             <Button variant="ghost" onClick={() => setRejectModalItem(null)}>
               Batal
             </Button>
-            <Button onClick={handleReject} variant="destructive" className="font-bold">
+            <Button onClick={handleReject} disabled={isProcessing} variant="destructive" className="font-bold">
               Konfirmasi Penolakan
             </Button>
           </DialogFooter>

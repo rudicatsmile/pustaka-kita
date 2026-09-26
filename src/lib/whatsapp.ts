@@ -1,5 +1,6 @@
 import { db, schema } from "@/db";
-import { DUMMY_NOTIFICATIONS, NotificationItem } from "@/data/dummy";
+import { DUMMY_NOTIFICATIONS } from "@/data/dummy";
+import { NotificationItem } from "@/types";
 
 export type WhatsAppMessageType =
   | "otp"
@@ -141,7 +142,7 @@ export async function sendWhatsAppMessage(
     sentAt: now.toISOString().replace("T", " ").substring(0, 16),
     retryCount: attempts - 1,
   };
-  DUMMY_NOTIFICATIONS.unshift(notifItem);
+  DUMMY_NOTIFICATIONS.unshift(notifItem as any);
 
   return {
     success,

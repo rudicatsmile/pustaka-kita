@@ -1,15 +1,11 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
-  History,
   Search,
-  Filter,
-  Eye,
   FileCode,
-  ArrowRight,
-  ShieldAlert,
-  Sparkles,
+  Loader2,
+  RefreshCw,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -31,14 +27,33 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { DUMMY_AUDIT_LOGS, AuditLogItem } from "@/data/dummy";
+import { toast } from "@/components/ui/sonner";
+import { AuditLogItem } from "@/types";
+import { getAuditLogsAction } from "@/actions/admin";
 
 export default function AuditLogPage() {
-  const [logs, setLogs] = useState<AuditLogItem[]>(DUMMY_AUDIT_LOGS);
+  const [logs, setLogs] = useState<AuditLogItem[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
   const [selectedEntity, setSelectedEntity] = useState("semua");
   const [selectedAction, setSelectedAction] = useState("semua");
   const [search, setSearch] = useState("");
   const [viewLogDiff, setViewLogDiff] = useState<AuditLogItem | null>(null);
+
+  async function loadLogs() {
+    setIsLoading(true);
+    try {
+      const data = await getAuditLogsAction();
+      setLogs(data as AuditLogItem[]);
+    } catch (e: any) {
+      toast.error("Gagal memuat audit log: " + (e.message || "Error"));
+    } finally {
+      setIsLoading(false);
+    }
+  }
+
+  useEffect(() => {
+    loadLogs();
+  }, []);
 
   const filtered = logs.filter((l) => {
     const matchSearch =
@@ -61,6 +76,16 @@ export default function AuditLogPage() {
             Rekaman append-only tidak dapat dihapus untuk setiap aksi perubahan data (buku, eksemplar, denda, dan pengguna).
           </p>
         </div>
+        <Button
+          onClick={loadLogs}
+          variant="outline"
+          size="sm"
+          disabled={isLoading}
+          className="h-9 gap-1.5 text-xs font-semibold self-start sm:self-auto"
+        >
+          <RefreshCw className={`h-3.5 w-3.5 ${isLoading ? "animate-spin" : ""}`} />
+          Segarkan Data
+        </Button>
       </div>
 
       {/* Filter and Search Bar */}
@@ -106,67 +131,82 @@ export default function AuditLogPage() {
 
       {/* Audit DataTable */}
       <Card className="rounded-2xl border border-border shadow-sm overflow-hidden">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead className="text-xs">Waktu & Tanggal</TableHead>
-              <TableHead className="text-xs">Aktor Pelaku</TableHead>
-              <TableHead className="text-xs">Aksi</TableHead>
-              <TableHead className="text-xs">Entitas</TableHead>
-              <TableHead className="text-xs">Deskripsi Perubahan</TableHead>
-              <TableHead className="text-xs">IP Address</TableHead>
-              <TableHead className="text-xs text-right">Perubahan JSON</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {filtered.map((log) => (
-              <TableRow key={log.id}>
-                <TableCell className="font-mono text-xs text-muted-foreground whitespace-nowrap">
-                  {log.createdAt}
-                </TableCell>
-                <TableCell className="font-heading font-bold text-xs text-foreground">
-                  {log.actorName}
-                </TableCell>
-                <TableCell>
-                  <Badge
-                    variant={
-                      log.action === "create"
-                        ? "success"
-                        : log.action === "update"
-                        ? "warning"
-                        : log.action === "verify"
-                        ? "default"
-                        : "destructive"
-                    }
-                    className="text-[10px] font-mono uppercase font-bold"
-                  >
-                    {log.action}
-                  </Badge>
-                </TableCell>
-                <TableCell className="font-mono text-xs text-primary font-bold">
-                  {log.entityType}
-                </TableCell>
-                <TableCell className="text-xs text-foreground/90 max-w-xs leading-relaxed">
-                  {log.description}
-                </TableCell>
-                <TableCell className="font-mono text-[11px] text-muted-foreground">
-                  {log.ipAddress}
-                </TableCell>
-                <TableCell className="text-right">
-                  <Button
-                    onClick={() => setViewLogDiff(log)}
-                    variant="outline"
-                    size="sm"
-                    className="h-8 text-xs font-bold gap-1 text-primary hover:bg-primary/10"
-                  >
-                    <FileCode className="h-3.5 w-3.5" />
-                    Lihat Diff JSON
-                  </Button>
-                </TableCell>
+        {isLoading ? (
+          <div className="flex h-48 items-center justify-center">
+            <Loader2 className="h-6 w-6 animate-spin text-primary" />
+            <span className="ml-2 text-xs text-muted-foreground">Memuat audit log database...</span>
+          </div>
+        ) : (
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead className="text-xs">Waktu & Tanggal</TableHead>
+                <TableHead className="text-xs">Aktor Pelaku</TableHead>
+                <TableHead className="text-xs">Aksi</TableHead>
+                <TableHead className="text-xs">Entitas</TableHead>
+                <TableHead className="text-xs">Deskripsi Perubahan</TableHead>
+                <TableHead className="text-xs">IP Address</TableHead>
+                <TableHead className="text-xs text-right">Perubahan JSON</TableHead>
               </TableRow>
-            ))}
-          </TableBody>
-        </Table>
+            </TableHeader>
+            <TableBody>
+              {filtered.length === 0 ? (
+                <TableRow>
+                  <TableCell colSpan={7} className="text-center text-xs text-muted-foreground py-8">
+                    Tidak ada rekaman audit log yang sesuai.
+                  </TableCell>
+                </TableRow>
+              ) : (
+                filtered.map((log) => (
+                  <TableRow key={log.id}>
+                    <TableCell className="font-mono text-xs text-muted-foreground whitespace-nowrap">
+                      {log.createdAt}
+                    </TableCell>
+                    <TableCell className="font-heading font-bold text-xs text-foreground">
+                      {log.actorName}
+                    </TableCell>
+                    <TableCell>
+                      <Badge
+                        variant={
+                          log.action === "create"
+                            ? "success"
+                            : log.action === "update"
+                            ? "warning"
+                            : log.action === "verify"
+                            ? "default"
+                            : "destructive"
+                        }
+                        className="text-[10px] font-mono uppercase font-bold"
+                      >
+                        {log.action}
+                      </Badge>
+                    </TableCell>
+                    <TableCell className="font-mono text-xs text-primary font-bold">
+                      {log.entityType}
+                    </TableCell>
+                    <TableCell className="text-xs text-foreground/90 max-w-xs leading-relaxed">
+                      {log.description}
+                    </TableCell>
+                    <TableCell className="font-mono text-[11px] text-muted-foreground">
+                      {log.ipAddress}
+                    </TableCell>
+                    <TableCell className="text-right">
+                      <Button
+                        onClick={() => setViewLogDiff(log)}
+                        variant="outline"
+                        size="sm"
+                        className="h-8 text-xs font-bold gap-1 text-primary hover:bg-primary/10"
+                      >
+                        <FileCode className="h-3.5 w-3.5" />
+                        Lihat Diff JSON
+                      </Button>
+                    </TableCell>
+                  </TableRow>
+                ))
+              )}
+            </TableBody>
+          </Table>
+        )}
       </Card>
 
       {/* Modal Diff Viewer JSON */}

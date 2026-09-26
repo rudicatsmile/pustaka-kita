@@ -1,6 +1,6 @@
 "use client";
 
-import { use, useState } from "react";
+import { use, useState, useEffect } from "react";
 import Link from "next/link";
 import {
   ArrowLeft,
@@ -9,14 +9,13 @@ import {
   Plus,
   BookOpen,
   FileText,
-  Upload,
   Trash2,
-  CheckCircle2,
+  Loader2,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { Card, CardContent } from "@/components/ui/card";
+import { Card } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Table,
@@ -35,8 +34,9 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import { DUMMY_BOOKS, DUMMY_COPIES, BookCopyItem } from "@/data/dummy";
 import { toast } from "@/components/ui/sonner";
+import { BookCopyItem, BookItem } from "@/types";
+import { getBookDetailsAction, updateBookAction, generateBookCopyAction } from "@/actions/books";
 
 export default function EditBukuPage({
   params,
@@ -44,49 +44,130 @@ export default function EditBukuPage({
   params: Promise<{ id: string }>;
 }) {
   const resolvedParams = use(params);
-  const book = DUMMY_BOOKS.find((b) => b.id === resolvedParams.id) || DUMMY_BOOKS[0];
+  const [book, setBook] = useState<BookItem | null>(null);
+  const [copies, setCopies] = useState<BookCopyItem[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [isSaving, setIsSaving] = useState(false);
 
-  const [copies, setCopies] = useState<BookCopyItem[]>(
-    DUMMY_COPIES.filter((c) => c.bookId === book.id)
-  );
-
-  const [title, setTitle] = useState(book.title);
-  const [author, setAuthor] = useState(book.author);
-  const [shelfLocation, setShelfLocation] = useState(book.shelfLocation);
+  const [title, setTitle] = useState("");
+  const [author, setAuthor] = useState("");
+  const [shelfLocation, setShelfLocation] = useState("");
 
   // New Copy Dialog
   const [isAddCopyOpen, setIsAddCopyOpen] = useState(false);
-  const [newCopyCode, setNewCopyCode] = useState(
-    `PKC-2024-001-00${copies.length + 1}`
-  );
-  const [newShelf, setNewShelf] = useState(book.shelfLocation);
-  const [newNote, setNewNote] = useState("Kondisi prima, baru dicap stempel perpustakaan");
+  const [newCopyCode, setNewCopyCode] = useState("");
+  const [newShelf, setNewShelf] = useState("");
+  const [newNote, setNewNote] = useState("Kondisi prima, siap dipinjam");
+  const [isCreatingCopy, setIsCreatingCopy] = useState(false);
 
-  const handleSaveInfo = (e: React.FormEvent) => {
+  useEffect(() => {
+    async function loadData() {
+      setIsLoading(true);
+      try {
+        const res = await getBookDetailsAction(resolvedParams.id);
+        if (res.success && res.book) {
+          setBook(res.book as BookItem);
+          setCopies(res.copies as BookCopyItem[]);
+          setTitle(res.book.title);
+          setAuthor(res.book.author);
+          setShelfLocation(res.book.shelfLocation || "Rak A-01");
+          setNewShelf(res.book.shelfLocation || "Rak A-01");
+          setNewCopyCode(`PKC-${new Date().getFullYear()}-${res.book.id.slice(0, 4)}-${String((res.copies?.length || 0) + 1).padStart(3, "0")}`);
+        } else {
+          toast.error("Buku tidak ditemukan");
+        }
+      } catch (err: any) {
+        toast.error("Gagal memuat detail buku: " + (err.message || "Error"));
+      } finally {
+        setIsLoading(false);
+      }
+    }
+    loadData();
+  }, [resolvedParams.id]);
+
+  const handleSaveInfo = async (e: React.FormEvent) => {
     e.preventDefault();
-    toast.success("Informasi Buku Berhasil Diperbarui! ✅", {
-      description: `Perubahan data "${title}" telah disimpan ke sistem dan dicatat pada Audit Log.`,
-    });
+    if (!book) return;
+    setIsSaving(true);
+    try {
+      const res = await updateBookAction({
+        id: book.id,
+        title,
+        author,
+        shelfLocation,
+      });
+      if (res.success) {
+        toast.success("Informasi Buku Berhasil Diperbarui! ✅", {
+          description: `Perubahan data "${title}" telah disimpan ke sistem dan dicatat pada Audit Log.`,
+        });
+      } else {
+        toast.error("Gagal memperbarui buku", { description: res.error });
+      }
+    } catch (e: any) {
+      toast.error("Terjadi kesalahan:", { description: e.message });
+    } finally {
+      setIsSaving(false);
+    }
   };
 
-  const handleAddCopy = () => {
-    const newCopy: BookCopyItem = {
-      id: `copy-mock-${Date.now()}`,
-      bookId: book.id,
-      bookTitle: book.title,
-      copyCode: newCopyCode,
-      status: "tersedia",
-      shelfLocation: newShelf,
-      conditionNote: newNote,
-      acquisitionDate: new Date().toISOString().split("T")[0],
-      acquisitionPrice: 85000,
-    };
-    setCopies((prev) => [...prev, newCopy]);
-    setIsAddCopyOpen(false);
-    toast.success("Eksemplar Baru Berhasil Digenerate! 🎯", {
-      description: `Kode barcode ${newCopyCode} siap ditempel di fisik buku.`,
-    });
+  const handleAddCopy = async () => {
+    if (!book) return;
+    setIsCreatingCopy(true);
+    try {
+      const res = await generateBookCopyAction({
+        bookId: book.id,
+        shelfLocation: newShelf || shelfLocation,
+        conditionNote: newNote,
+      });
+
+      if (res.success && res.copy) {
+        setCopies((prev) => [
+          ...prev,
+          {
+            id: res.copy.id,
+            bookId: book.id,
+            bookTitle: book.title,
+            copyCode: res.copy.copyCode,
+            status: res.copy.status as any,
+            shelfLocation: res.copy.shelfLocation || "Rak A-01",
+            conditionNote: res.copy.conditionNote || "",
+            acquisitionDate: new Date().toISOString().split("T")[0],
+            acquisitionPrice: 85000,
+          },
+        ]);
+        setIsAddCopyOpen(false);
+        toast.success("Eksemplar Baru Berhasil Digenerate! 🎯", {
+          description: `Kode barcode ${res.copy.copyCode} siap ditempel di fisik buku.`,
+        });
+      } else {
+        toast.error("Gagal membuat eksemplar", { description: res.error });
+      }
+    } catch (e: any) {
+      toast.error("Terjadi kesalahan:", { description: e.message });
+    } finally {
+      setIsCreatingCopy(false);
+    }
   };
+
+  if (isLoading) {
+    return (
+      <div className="flex h-64 items-center justify-center">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        <span className="ml-2 text-sm text-muted-foreground">Memuat data buku...</span>
+      </div>
+    );
+  }
+
+  if (!book) {
+    return (
+      <div className="p-8 text-center">
+        <p className="text-muted-foreground">Buku tidak ditemukan.</p>
+        <Link href="/pustakawan/buku" className="mt-4 inline-block text-xs font-bold text-primary">
+          Kembali ke Manajemen Buku
+        </Link>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -146,8 +227,8 @@ export default function EditBukuPage({
                 </div>
               </div>
               <div className="pt-2">
-                <Button type="submit" size="sm" className="font-bold text-xs gap-1.5">
-                  <Save className="h-4 w-4" />
+                <Button type="submit" size="sm" disabled={isSaving} className="font-bold text-xs gap-1.5">
+                  {isSaving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
                   Simpan Perubahan
                 </Button>
               </div>
@@ -163,7 +244,7 @@ export default function EditBukuPage({
                 Eksemplar & Barcode Fisik
               </h3>
               <p className="text-xs text-muted-foreground">
-                Setiap buku fisik memiliki barcode unik (format: PKC-YYYY-NNN-NNN) untuk scan mandiri.
+                Setiap buku fisik memiliki barcode unik (format: PKC-YYYY-NNN-NNN) untuk scan sirkulasi.
               </p>
             </div>
 
@@ -210,8 +291,8 @@ export default function EditBukuPage({
                   <Button variant="ghost" onClick={() => setIsAddCopyOpen(false)}>
                     Batal
                   </Button>
-                  <Button onClick={handleAddCopy} className="font-bold">
-                    Simpan Eksemplar
+                  <Button onClick={handleAddCopy} disabled={isCreatingCopy} className="font-bold">
+                    {isCreatingCopy ? <Loader2 className="h-4 w-4 animate-spin" /> : "Simpan Eksemplar"}
                   </Button>
                 </DialogFooter>
               </DialogContent>
@@ -230,25 +311,33 @@ export default function EditBukuPage({
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {copies.map((copy) => (
-                  <TableRow key={copy.id}>
-                    <TableCell className="font-mono font-bold text-xs text-primary flex items-center gap-1.5">
-                      <Barcode className="h-4 w-4" />
-                      {copy.copyCode}
-                    </TableCell>
-                    <TableCell className="text-xs">{copy.shelfLocation}</TableCell>
-                    <TableCell className="text-xs text-muted-foreground">{copy.conditionNote}</TableCell>
-                    <TableCell className="font-mono text-xs">{copy.acquisitionDate}</TableCell>
-                    <TableCell className="text-right">
-                      <Badge
-                        variant={copy.status === "tersedia" ? "success" : "warning"}
-                        className="text-[10px]"
-                      >
-                        {copy.status}
-                      </Badge>
+                {copies.length === 0 ? (
+                  <TableRow>
+                    <TableCell colSpan={5} className="text-center text-xs text-muted-foreground py-6">
+                      Belum ada salinan eksemplar fisik untuk buku ini.
                     </TableCell>
                   </TableRow>
-                ))}
+                ) : (
+                  copies.map((copy) => (
+                    <TableRow key={copy.id}>
+                      <TableCell className="font-mono font-bold text-xs text-primary flex items-center gap-1.5">
+                        <Barcode className="h-4 w-4" />
+                        {copy.copyCode}
+                      </TableCell>
+                      <TableCell className="text-xs">{copy.shelfLocation}</TableCell>
+                      <TableCell className="text-xs text-muted-foreground">{copy.conditionNote}</TableCell>
+                      <TableCell className="font-mono text-xs">{copy.acquisitionDate}</TableCell>
+                      <TableCell className="text-right">
+                        <Badge
+                          variant={copy.status === "tersedia" ? "success" : "warning"}
+                          className="text-[10px]"
+                        >
+                          {copy.status}
+                        </Badge>
+                      </TableCell>
+                    </TableRow>
+                  ))
+                )}
               </TableBody>
             </Table>
           </Card>
@@ -279,10 +368,10 @@ export default function EditBukuPage({
             </div>
 
             <div className="pt-2 flex items-center gap-3">
-              <Link href="/dashboard/ebook/eb-001/baca">
+              <Link href={`/katalog/${book.slug}`}>
                 <Button size="sm" variant="outline" className="text-xs font-bold gap-1.5">
                   <BookOpen className="h-3.5 w-3.5" />
-                  Pratinjau Reader
+                  Lihat di Katalog
                 </Button>
               </Link>
               <Button

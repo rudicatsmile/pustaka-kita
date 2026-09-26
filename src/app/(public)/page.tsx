@@ -1,12 +1,6 @@
-"use client";
-
 import Link from "next/link";
 import Image from "next/image";
-import { useState } from "react";
-import { useRouter } from "next/navigation";
 import {
-  Search,
-  BookOpen,
   Sparkles,
   ArrowRight,
   BookMarked,
@@ -14,30 +8,19 @@ import {
   Bell,
   Star,
   CheckCircle,
-  Users,
-  Library,
   Flame,
   ChevronRight,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
-import { DUMMY_BOOKS, DUMMY_CATEGORIES } from "@/data/dummy";
+import { getPublicHomeDataAction } from "@/actions/books";
+import { HeroSearchForm } from "@/components/home/hero-search-form";
 
-export default function HomePage() {
-  const router = useRouter();
-  const [searchQuery, setSearchQuery] = useState("");
-
-  const handleSearchSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (searchQuery.trim()) {
-      router.push(`/katalog?q=${encodeURIComponent(searchQuery.trim())}`);
-    } else {
-      router.push("/katalog");
-    }
-  };
-
-  const featuredBooks = DUMMY_BOOKS.slice(0, 4);
+export default async function HomePage() {
+  const { stats, books, featuredBook, categories } = await getPublicHomeDataAction();
+  const displayBooks = books.slice(0, 4);
+  const heroBook = featuredBook || books[0];
 
   return (
     <div className="flex flex-col">
@@ -69,25 +52,8 @@ export default function HomePage() {
                 pengingat WhatsApp otomatis agar bebas denda.
               </p>
 
-              {/* Fast Search Form */}
-              <form
-                onSubmit={handleSearchSubmit}
-                className="flex flex-col sm:flex-row items-center gap-2.5 max-w-xl mx-auto lg:mx-0 p-2 rounded-2xl bg-card border-2 border-primary/20 shadow-lg focus-within:border-primary transition-all"
-              >
-                <div className="relative flex-1 w-full flex items-center pl-3">
-                  <Search className="h-5 w-5 text-muted-foreground shrink-0" />
-                  <input
-                    type="text"
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                    placeholder="Ketik judul buku, nama penulis, atau topik..."
-                    className="w-full bg-transparent px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none"
-                  />
-                </div>
-                <Button type="submit" className="w-full sm:w-auto rounded-xl font-bold shrink-0">
-                  Cari di Katalog
-                </Button>
-              </form>
+              {/* Fast Search Form Client Component */}
+              <HeroSearchForm />
 
               {/* Quick Tags */}
               <div className="flex flex-wrap items-center justify-center lg:justify-start gap-2 pt-1 text-xs text-muted-foreground">
@@ -108,116 +74,120 @@ export default function HomePage() {
 
             {/* Right Card / Visual Showcase */}
             <div className="lg:col-span-5 flex justify-center">
-              <div className="relative w-full max-w-md">
-                <div className="rounded-3xl border border-border/80 bg-card p-6 shadow-2xl space-y-5">
-                  <div className="flex items-center justify-between">
-                    <Badge variant="warning" className="font-bold">
-                      ⭐ Rekomendasi Pekan Ini
-                    </Badge>
-                    <span className="text-xs text-muted-foreground">Stok Tersedia</span>
-                  </div>
-
-                  <div className="flex gap-4 items-start">
-                    <div className="relative h-36 w-24 shrink-0 overflow-hidden rounded-xl border shadow-md">
-                      <Image
-                        src={DUMMY_BOOKS[0].coverUrl}
-                        alt={DUMMY_BOOKS[0].title}
-                        fill
-                        className="object-cover"
-                        sizes="96px"
-                      />
+              {heroBook && (
+                <div className="relative w-full max-w-md">
+                  <div className="rounded-3xl border border-border/80 bg-card p-6 shadow-2xl space-y-5">
+                    <div className="flex items-center justify-between">
+                      <Badge variant="warning" className="font-bold">
+                        ⭐ Rekomendasi Pekan Ini
+                      </Badge>
+                      <span className="text-xs text-muted-foreground">
+                        {heroBook.availableCopies > 0 ? "Stok Tersedia" : "Dapat Direservasi"}
+                      </span>
                     </div>
-                    <div className="space-y-1.5 min-w-0">
-                      <p className="text-xs font-bold text-primary uppercase tracking-wide">
-                        {DUMMY_BOOKS[0].category}
-                      </p>
-                      <h3 className="font-heading text-lg font-bold text-foreground truncate">
-                        {DUMMY_BOOKS[0].title}
-                      </h3>
-                      <p className="text-xs text-muted-foreground">
-                        Karya: <strong className="text-foreground">{DUMMY_BOOKS[0].author}</strong>
-                      </p>
-                      <div className="flex items-center gap-1 text-xs font-bold text-amber-500 pt-1">
-                        <Star className="h-3.5 w-3.5 fill-current" />
-                        <span>{DUMMY_BOOKS[0].rating}</span>
-                        <span className="text-muted-foreground font-normal">
-                          ({DUMMY_BOOKS[0].readCount}x dipinjam)
-                        </span>
+
+                    <div className="flex gap-4 items-start">
+                      <div className="relative h-36 w-24 shrink-0 overflow-hidden rounded-xl border shadow-md">
+                        <Image
+                          src={heroBook.coverUrl}
+                          alt={heroBook.title}
+                          fill
+                          className="object-cover"
+                          sizes="96px"
+                        />
+                      </div>
+                      <div className="space-y-1.5 min-w-0">
+                        <p className="text-xs font-bold text-primary uppercase tracking-wide">
+                          {heroBook.category}
+                        </p>
+                        <h3 className="font-heading text-lg font-bold text-foreground truncate">
+                          {heroBook.title}
+                        </h3>
+                        <p className="text-xs text-muted-foreground">
+                          Karya: <strong className="text-foreground">{heroBook.author}</strong>
+                        </p>
+                        <div className="flex items-center gap-1 text-xs font-bold text-amber-500 pt-1">
+                          <Star className="h-3.5 w-3.5 fill-current" />
+                          <span>{heroBook.rating || 4.8}</span>
+                          <span className="text-muted-foreground font-normal">
+                            ({heroBook.readCount || 10}x dipinjam)
+                          </span>
+                        </div>
                       </div>
                     </div>
+
+                    <div className="rounded-xl bg-muted/60 p-3 text-xs space-y-1">
+                      <div className="flex justify-between">
+                        <span className="text-muted-foreground">Lokasi Rak:</span>
+                        <strong className="text-foreground font-mono">
+                          {heroBook.shelfLocation}
+                        </strong>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-muted-foreground">Salinan Tersedia:</span>
+                        <strong className="text-emerald-600">
+                          {heroBook.availableCopies} dari {heroBook.totalCopies} eksemplar
+                        </strong>
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-2 pt-1">
+                      <Link href={`/katalog/${heroBook.slug}`}>
+                        <Button variant="outline" size="sm" className="w-full text-xs">
+                          Detail Buku
+                        </Button>
+                      </Link>
+                      <Link href="/dashboard/scan">
+                        <Button size="sm" className="w-full text-xs font-bold">
+                          Pinjam Sekarang
+                        </Button>
+                      </Link>
+                    </div>
                   </div>
 
-                  <div className="rounded-xl bg-muted/60 p-3 text-xs space-y-1">
-                    <div className="flex justify-between">
-                      <span className="text-muted-foreground">Lokasi Rak:</span>
-                      <strong className="text-foreground font-mono">
-                        {DUMMY_BOOKS[0].shelfLocation}
-                      </strong>
+                  {/* Floating Micro Badge */}
+                  <div className="absolute -bottom-4 -left-4 rounded-2xl border border-border bg-card p-3 shadow-lg flex items-center gap-3">
+                    <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-emerald-100 text-emerald-700">
+                      <CheckCircle className="h-5 w-5" />
                     </div>
-                    <div className="flex justify-between">
-                      <span className="text-muted-foreground">Salinan Tersedia:</span>
-                      <strong className="text-emerald-600">
-                        {DUMMY_BOOKS[0].availableCopies} dari {DUMMY_BOOKS[0].totalCopies} eksemplar
-                      </strong>
+                    <div className="text-left">
+                      <p className="text-xs font-bold text-foreground">Self-Checkout Mandiri</p>
+                      <p className="text-[10px] text-muted-foreground">Scan & bawa buku dalam 30 detik</p>
                     </div>
-                  </div>
-
-                  <div className="grid grid-cols-2 gap-2 pt-1">
-                    <Link href={`/katalog/${DUMMY_BOOKS[0].slug}`}>
-                      <Button variant="outline" size="sm" className="w-full text-xs">
-                        Detail Buku
-                      </Button>
-                    </Link>
-                    <Link href="/dashboard/scan">
-                      <Button size="sm" className="w-full text-xs font-bold">
-                        Pinjam Sekarang
-                      </Button>
-                    </Link>
                   </div>
                 </div>
-
-                {/* Floating Micro Badge */}
-                <div className="absolute -bottom-4 -left-4 rounded-2xl border border-border bg-card p-3 shadow-lg flex items-center gap-3">
-                  <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-emerald-100 text-emerald-700">
-                    <CheckCircle className="h-5 w-5" />
-                  </div>
-                  <div className="text-left">
-                    <p className="text-xs font-bold text-foreground">Self-Checkout Mandiri</p>
-                    <p className="text-[10px] text-muted-foreground">Scan & bawa buku dalam 30 detik</p>
-                  </div>
-                </div>
-              </div>
+              )}
             </div>
           </div>
         </div>
       </section>
 
-      {/* 2. Statistik Prestasi Perpustakaan */}
+      {/* 2. Statistik Prestasi Perpustakaan Dinamis */}
       <section className="border-y border-border/80 bg-muted/40 py-10">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
           <div className="grid grid-cols-2 gap-6 md:grid-cols-4 text-center">
             <div className="space-y-1">
               <p className="font-heading text-3xl sm:text-4xl font-extrabold text-primary">
-                3.500+
+                {stats.totalBooks.toLocaleString("id-ID")}+
               </p>
               <p className="text-xs sm:text-sm font-medium text-muted-foreground">
-                Koleksi Buku Fisik
+                Judul Buku Koleksi
               </p>
             </div>
             <div className="space-y-1">
               <p className="font-heading text-3xl sm:text-4xl font-extrabold text-secondary">
-                1.200+
+                {stats.totalCopies.toLocaleString("id-ID")}+
               </p>
               <p className="text-xs sm:text-sm font-medium text-muted-foreground">
-                Judul E-Book Digital
+                Eksemplar Fisik di Rak
               </p>
             </div>
             <div className="space-y-1">
               <p className="font-heading text-3xl sm:text-4xl font-extrabold text-primary">
-                2.450+
+                {stats.totalMembers.toLocaleString("id-ID")}+
               </p>
               <p className="text-xs sm:text-sm font-medium text-muted-foreground">
-                Anggota Aktif
+                Anggota Aktif Terdaftar
               </p>
             </div>
             <div className="space-y-1">
@@ -254,7 +224,7 @@ export default function HomePage() {
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-            {featuredBooks.map((book) => (
+            {displayBooks.map((book) => (
               <Card
                 key={book.id}
                 className="group flex flex-col overflow-hidden hover:border-primary/40 hover:shadow-lg transition-all"
@@ -335,7 +305,7 @@ export default function HomePage() {
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
-            {DUMMY_CATEGORIES.map((cat) => (
+            {categories.map((cat) => (
               <Link
                 key={cat.id}
                 href={`/katalog?kategori=${encodeURIComponent(cat.name)}`}

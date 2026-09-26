@@ -14,17 +14,19 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
-import { DUMMY_CATEGORIES } from "@/data/dummy";
 import { toast } from "@/components/ui/sonner";
 import { createBookAction } from "@/actions/books";
+import { getAllCategoriesAction } from "@/actions/admin";
+import { useEffect } from "react";
 
 export default function TambahBukuBaruPage() {
   const router = useRouter();
+  const [categories, setCategories] = useState<any[]>([]);
   const [title, setTitle] = useState("");
   const [author, setAuthor] = useState("");
   const [publisher, setPublisher] = useState("");
   const [isbn, setIsbn] = useState("");
-  const [category, setCategory] = useState(DUMMY_CATEGORIES[0].name);
+  const [category, setCategory] = useState("Fiksi Indonesia");
   const [year, setYear] = useState("2024");
   const [pages, setPages] = useState("320");
   const [shelfLocation, setShelfLocation] = useState("Rak A-01 (Fiksi)");
@@ -32,6 +34,15 @@ export default function TambahBukuBaruPage() {
   const [synopsis, setSynopsis] = useState("");
   const [coverName, setCoverName] = useState("");
   const [isSaving, setIsSaving] = useState(false);
+
+  useEffect(() => {
+    getAllCategoriesAction().then((cats) => {
+      if (cats && cats.length > 0) {
+        setCategories(cats);
+        setCategory(cats[0].name);
+      }
+    });
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -143,7 +154,7 @@ export default function TambahBukuBaruPage() {
                 onChange={(e) => setCategory(e.target.value)}
                 className="flex h-11 w-full rounded-xl border border-input bg-background px-3 py-2 text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-primary"
               >
-                {DUMMY_CATEGORIES.map((c) => (
+                {categories.map((c: any) => (
                   <option key={c.id} value={c.name}>
                     {c.name}
                   </option>

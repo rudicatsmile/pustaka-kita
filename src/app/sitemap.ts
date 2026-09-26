@@ -1,7 +1,7 @@
 import { MetadataRoute } from "next";
-import { DUMMY_BOOKS } from "@/data/dummy";
+import { getAllBookSlugsAction } from "@/actions/books";
 
-export default function sitemap(): MetadataRoute.Sitemap {
+export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "https://pustakakitaceria.sch.id";
 
   const staticRoutes: MetadataRoute.Sitemap = [
@@ -49,9 +49,10 @@ export default function sitemap(): MetadataRoute.Sitemap {
     },
   ];
 
-  const bookRoutes: MetadataRoute.Sitemap = DUMMY_BOOKS.map((book) => ({
+  const bookRows = await getAllBookSlugsAction();
+  const bookRoutes: MetadataRoute.Sitemap = bookRows.map((book) => ({
     url: `${baseUrl}/katalog/${book.slug}`,
-    lastModified: new Date(),
+    lastModified: book.updatedAt ? new Date(book.updatedAt) : new Date(),
     changeFrequency: "weekly",
     priority: 0.8,
   }));

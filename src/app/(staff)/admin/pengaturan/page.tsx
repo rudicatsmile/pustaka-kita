@@ -1,44 +1,94 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
-  Settings,
   CreditCard,
   Clock,
   Shield,
   Save,
-  Sparkles,
+  Loader2,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Card, CardContent } from "@/components/ui/card";
-import { SYSTEM_CONFIG } from "@/data/dummy";
+import { Card } from "@/components/ui/card";
 import { toast } from "@/components/ui/sonner";
+import { getSettingsAction, updateSettingsAction } from "@/actions/settings";
 
 export default function PengaturanSistemPage() {
-  const [loanDays, setLoanDays] = useState(SYSTEM_CONFIG.loanDurationDays.toString());
-  const [finePerDay, setFinePerDay] = useState(SYSTEM_CONFIG.finePerDay.toString());
-  const [maxBooks, setMaxBooks] = useState(SYSTEM_CONFIG.maxBooksPerMember.toString());
-  const [maxRenewals, setMaxRenewals] = useState(SYSTEM_CONFIG.maxRenewals.toString());
-  const [fineThreshold, setFineThreshold] = useState(SYSTEM_CONFIG.fineBlockThreshold.toString());
+  const [loanDays, setLoanDays] = useState("7");
+  const [finePerDay, setFinePerDay] = useState("1000");
+  const [maxBooks, setMaxBooks] = useState("3");
+  const [maxRenewals, setMaxRenewals] = useState("1");
+  const [fineThreshold, setFineThreshold] = useState("10000");
 
   // Rekening Bank
-  const [bankName, setBankName] = useState(SYSTEM_CONFIG.bankName);
-  const [bankAccount, setBankAccount] = useState(SYSTEM_CONFIG.bankAccountNumber);
-  const [bankHolder, setBankHolder] = useState(SYSTEM_CONFIG.bankAccountName);
+  const [bankName, setBankName] = useState("Bank Mandiri");
+  const [bankAccount, setBankAccount] = useState("1370012345678");
+  const [bankHolder, setBankHolder] = useState("SMK Nusantara - Perpustakaan PustakaKitaCeria");
 
+  const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
 
-  const handleSave = (e: React.FormEvent) => {
+  useEffect(() => {
+    async function load() {
+      setIsLoading(true);
+      try {
+        const s = await getSettingsAction();
+        if (s) {
+          setBankName(s.bankName || "Bank Mandiri");
+          setBankAccount(s.bankAccountNumber || "1370012345678");
+          setBankHolder(s.bankAccountName || "SMK Nusantara - Perpustakaan PustakaKitaCeria");
+        }
+      } catch (e: any) {
+        console.warn("Could not load settings:", e);
+      } finally {
+        setIsLoading(false);
+      }
+    }
+    load();
+  }, []);
+
+  const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSaving(true);
-    setTimeout(() => {
+    try {
+      const res = await updateSettingsAction(
+        {
+          loanDurationDays: Number(loanDays),
+          finePerDay: Number(finePerDay),
+          maxBooksPerMember: Number(maxBooks),
+          maxRenewals: Number(maxRenewals),
+          fineBlockThreshold: Number(fineThreshold),
+          bankName,
+          bankAccountNumber: bankAccount,
+          bankAccountName: bankHolder,
+        },
+        "usr-admin-1",
+        "Administrator Perpustakaan"
+      );
+
+      if (res.success) {
+        toast.success("Pengaturan Sistem Berhasil Diperbarui! ⚙️", {
+          description: "Tarif denda, durasi peminjaman, dan info rekening baru tersimpan dan tercatat di Audit Log.",
+        });
+      } else {
+        toast.error("Gagal menyimpan pengaturan.");
+      }
+    } catch (e: any) {
+      toast.error("Terjadi kesalahan:", { description: e.message });
+    } finally {
       setIsSaving(false);
-      toast.success("Pengaturan Sistem Berhasil Diperbarui! ⚙️", {
-        description: "Tarif denda, durasi peminjaman, dan info rekening baru tersimpan dan tercatat di Audit Log.",
-      });
-    }, 600);
+    }
   };
+
+  if (isLoading) {
+    return (
+      <div className="flex h-64 items-center justify-center">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        <span className="ml-2 text-sm text-muted-foreground">Memuat konfigurasi sistem...</span>
+      </div>
+    );
+  }
 
   return (
     <div className="mx-auto max-w-4xl space-y-6">
@@ -151,7 +201,7 @@ export default function PengaturanSistemPage() {
 
         <div className="flex justify-end">
           <Button type="submit" disabled={isSaving} size="lg" className="font-bold text-xs gap-2 shadow-md">
-            <Save className="h-4 w-4" />
+            {isSaving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
             {isSaving ? "Menyimpan Perubahan..." : "Simpan Seluruh Pengaturan"}
           </Button>
         </div>

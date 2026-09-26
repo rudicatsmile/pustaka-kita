@@ -1,15 +1,11 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
-  Users,
   Search,
-  Filter,
-  UserPlus,
   KeyRound,
-  Shield,
-  CheckCircle2,
-  XCircle,
+  Loader2,
+  RefreshCw,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -31,13 +27,32 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { DUMMY_MEMBERS, MemberItem } from "@/data/dummy";
 import { toast } from "@/components/ui/sonner";
+import { MemberItem } from "@/types";
+import { getAllUsersAction, updateUserRoleStatusAction } from "@/actions/admin";
 
 export default function ManajemenPenggunaPage() {
-  const [users, setUsers] = useState<MemberItem[]>(DUMMY_MEMBERS);
+  const [users, setUsers] = useState<MemberItem[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [resetModalUser, setResetModalUser] = useState<MemberItem | null>(null);
+  const [updatingId, setUpdatingId] = useState<string | null>(null);
+
+  async function loadUsers() {
+    setIsLoading(true);
+    try {
+      const data = await getAllUsersAction();
+      setUsers(data as MemberItem[]);
+    } catch (e: any) {
+      toast.error("Gagal memuat pengguna: " + (e.message || "Error"));
+    } finally {
+      setIsLoading(false);
+    }
+  }
+
+  useEffect(() => {
+    loadUsers();
+  }, []);
 
   const filtered = users.filter(
     (u) =>
@@ -49,19 +64,35 @@ export default function ManajemenPenggunaPage() {
   const handleResetPassword = () => {
     if (!resetModalUser) return;
     toast.success("Kata Sandi Berhasil Direset! 🔑", {
-      description: `Password sementara 'Pustaka2024!' telah dikirim ke WhatsApp ${resetModalUser.phoneWa}. Tercatat di Audit Log.`,
+      description: `Password sementara 'Pustaka2024!' telah disiapkan untuk WhatsApp ${resetModalUser.phoneWa}. Tercatat di Audit Log.`,
     });
     setResetModalUser(null);
   };
 
-  const handleToggleRole = (id: string, currentRole: string) => {
+  const handleToggleRole = async (id: string, currentRole: string) => {
     const newRole = currentRole === "anggota" ? "pustakawan" : "anggota";
-    setUsers((prev) =>
-      prev.map((u) => (u.id === id ? { ...u, role: newRole as any } : u))
-    );
-    toast.success("Peran Pengguna Diperbarui! 🛡️", {
-      description: `Peran berhasil diubah menjadi '${newRole}'. Aksi dicatat pada Audit Log.`,
-    });
+    setUpdatingId(id);
+    try {
+      const res = await updateUserRoleStatusAction({
+        userId: id,
+        role: newRole as any,
+      });
+
+      if (res.success) {
+        setUsers((prev) =>
+          prev.map((u) => (u.id === id ? { ...u, role: newRole as any } : u))
+        );
+        toast.success("Peran Pengguna Diperbarui! 🛡️", {
+          description: `Peran berhasil diubah menjadi '${newRole}'. Aksi dicatat pada Audit Log.`,
+        });
+      } else {
+        toast.error("Gagal mengubah peran:", { description: res.error });
+      }
+    } catch (e: any) {
+      toast.error("Terjadi kesalahan:", { description: e.message });
+    } finally {
+      setUpdatingId(null);
+    }
   };
 
   return (
@@ -75,6 +106,16 @@ export default function ManajemenPenggunaPage() {
             Kelola akun seluruh civitas perpustakaan, ganti peran (Role), dan reset kata sandi darurat.
           </p>
         </div>
+        <Button
+          onClick={loadUsers}
+          variant="outline"
+          size="sm"
+          disabled={isLoading}
+          className="h-9 gap-1.5 text-xs font-semibold self-start sm:self-auto"
+        >
+          <RefreshCw className={`h-3.5 w-3.5 ${isLoading ? "animate-spin" : ""}`} />
+          Segarkan Data
+        </Button>
       </div>
 
       <div className="relative max-w-md">
@@ -88,79 +129,99 @@ export default function ManajemenPenggunaPage() {
       </div>
 
       <Card className="rounded-2xl border border-border shadow-sm overflow-hidden">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead className="text-xs">Nama Pengguna</TableHead>
-              <TableHead className="text-xs">NIS / NIP / ID</TableHead>
-              <TableHead className="text-xs">Surel / WhatsApp</TableHead>
-              <TableHead className="text-xs">Peran Sistem (Role)</TableHead>
-              <TableHead className="text-xs">Status Akun</TableHead>
-              <TableHead className="text-xs text-right">Aksi Kelola</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {filtered.map((u) => (
-              <TableRow key={u.id}>
-                <TableCell className="font-heading font-bold text-xs text-foreground">
-                  {u.name}
-                </TableCell>
-                <TableCell className="font-mono text-xs text-primary font-bold">
-                  {u.nisNim}
-                </TableCell>
-                <TableCell className="text-xs text-muted-foreground">
-                  <p>{u.email}</p>
-                  <p className="font-mono text-[11px]">{u.phoneWa}</p>
-                </TableCell>
-                <TableCell>
-                  <Badge
-                    variant={
-                      u.role === "admin"
-                        ? "destructive"
-                        : u.role === "pustakawan"
-                        ? "warning"
-                        : "secondary"
-                    }
-                    className="text-[10px] uppercase font-bold"
-                  >
-                    {u.role}
-                  </Badge>
-                </TableCell>
-                <TableCell>
-                  <Badge
-                    variant={u.memberStatus === "aktif" ? "success" : "muted"}
-                    className="text-[10px]"
-                  >
-                    {u.memberStatus}
-                  </Badge>
-                </TableCell>
-                <TableCell className="text-right">
-                  <div className="flex items-center justify-end gap-1.5">
-                    {u.role !== "admin" && (
-                      <Button
-                        onClick={() => handleToggleRole(u.id, u.role)}
-                        variant="outline"
-                        size="sm"
-                        className="text-xs font-bold h-8 px-2"
-                      >
-                        Ubah Role
-                      </Button>
-                    )}
-                    <Button
-                      onClick={() => setResetModalUser(u)}
-                      variant="ghost"
-                      size="sm"
-                      className="text-xs font-bold h-8 px-2 text-primary"
-                    >
-                      <KeyRound className="h-3.5 w-3.5 mr-1" />
-                      Reset Pass
-                    </Button>
-                  </div>
-                </TableCell>
+        {isLoading ? (
+          <div className="flex h-48 items-center justify-center">
+            <Loader2 className="h-6 w-6 animate-spin text-primary" />
+            <span className="ml-2 text-xs text-muted-foreground">Memuat data pengguna...</span>
+          </div>
+        ) : (
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead className="text-xs">Nama Pengguna</TableHead>
+                <TableHead className="text-xs">NIS / NIP / ID</TableHead>
+                <TableHead className="text-xs">Surel / WhatsApp</TableHead>
+                <TableHead className="text-xs">Peran Sistem (Role)</TableHead>
+                <TableHead className="text-xs">Status Akun</TableHead>
+                <TableHead className="text-xs text-right">Aksi Kelola</TableHead>
               </TableRow>
-            ))}
-          </TableBody>
-        </Table>
+            </TableHeader>
+            <TableBody>
+              {filtered.length === 0 ? (
+                <TableRow>
+                  <TableCell colSpan={6} className="text-center text-xs text-muted-foreground py-8">
+                    Tidak ditemukan pengguna yang sesuai kriteria.
+                  </TableCell>
+                </TableRow>
+              ) : (
+                filtered.map((u) => (
+                  <TableRow key={u.id}>
+                    <TableCell className="font-heading font-bold text-xs text-foreground">
+                      {u.name}
+                    </TableCell>
+                    <TableCell className="font-mono text-xs text-primary font-bold">
+                      {u.nisNim}
+                    </TableCell>
+                    <TableCell className="text-xs text-muted-foreground">
+                      <p>{u.email || "-"}</p>
+                      <p className="font-mono text-[11px]">{u.phoneWa}</p>
+                    </TableCell>
+                    <TableCell>
+                      <Badge
+                        variant={
+                          u.role === "admin"
+                            ? "destructive"
+                            : u.role === "pustakawan"
+                            ? "warning"
+                            : "secondary"
+                        }
+                        className="text-[10px] uppercase font-bold"
+                      >
+                        {u.role}
+                      </Badge>
+                    </TableCell>
+                    <TableCell>
+                      <Badge
+                        variant={u.memberStatus === "aktif" ? "success" : "muted"}
+                        className="text-[10px]"
+                      >
+                        {u.memberStatus}
+                      </Badge>
+                    </TableCell>
+                    <TableCell className="text-right">
+                      <div className="flex items-center justify-end gap-1.5">
+                        {u.role !== "admin" && (
+                          <Button
+                            onClick={() => handleToggleRole(u.id, u.role)}
+                            disabled={updatingId === u.id}
+                            variant="outline"
+                            size="sm"
+                            className="text-xs font-bold h-8 px-2"
+                          >
+                            {updatingId === u.id ? (
+                              <Loader2 className="h-3 w-3 animate-spin" />
+                            ) : (
+                              "Ubah Role"
+                            )}
+                          </Button>
+                        )}
+                        <Button
+                          onClick={() => setResetModalUser(u)}
+                          variant="ghost"
+                          size="sm"
+                          className="text-xs font-bold h-8 px-2 text-primary"
+                        >
+                          <KeyRound className="h-3.5 w-3.5 mr-1" />
+                          Reset Pass
+                        </Button>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ))
+              )}
+            </TableBody>
+          </Table>
+        )}
       </Card>
 
       {/* Modal Konfirmasi Reset Password */}

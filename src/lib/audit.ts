@@ -1,5 +1,6 @@
 import { db, schema } from "@/db";
-import { DUMMY_AUDIT_LOGS, AuditLogItem } from "@/data/dummy";
+import { AuditLogItem } from "@/types";
+import { DUMMY_AUDIT_LOGS } from "@/data/dummy";
 
 export interface AuditLogParams {
   actorId?: string;
@@ -39,7 +40,7 @@ export async function writeAuditLog(params: AuditLogParams) {
     }
   }
 
-  // 2. Also record in active session array so UI reflects CUD audits immediately
+  // 2. Also record in active session array so UI reflects CUD audits immediately if fallback
   const logEntry: AuditLogItem = {
     id: `aud-${Date.now()}`,
     actorId: params.actorId || "usr-staff-1",

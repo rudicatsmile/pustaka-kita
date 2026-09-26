@@ -47,6 +47,8 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
                   nisNim: user.nisNim,
                   role: user.role,
                   memberStatus: user.memberStatus,
+                  classOrMajor: user.classOrMajor,
+                  phoneWa: user.phoneWa,
                 };
               }
             }
@@ -67,6 +69,8 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
               nisNim: mockUser.nisNim,
               role: mockUser.role,
               memberStatus: mockUser.memberStatus,
+              classOrMajor: mockUser.classOrMajor,
+              phoneWa: mockUser.phoneWa,
             };
           }
         }
@@ -86,6 +90,8 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         token.nisNim = (user as any).nisNim;
         token.role = (user as any).role;
         token.memberStatus = (user as any).memberStatus;
+        token.classOrMajor = (user as any).classOrMajor;
+        token.phoneWa = (user as any).phoneWa;
       }
       return token;
     },
@@ -95,6 +101,8 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         (session.user as any).nisNim = token.nisNim;
         (session.user as any).role = token.role;
         (session.user as any).memberStatus = token.memberStatus;
+        (session.user as any).classOrMajor = token.classOrMajor;
+        (session.user as any).phoneWa = token.phoneWa;
       }
       return session;
     },

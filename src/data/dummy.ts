@@ -1,3 +1,15 @@
+/**
+ * ============================================================================
+ * TEST FIXTURES & SEED REFERENCE DATA (DUMMY DATA)
+ * ============================================================================
+ * CATATAN ARSITEKTUR:
+ * File ini difungsikan sebagai mock fixture untuk testing dan data fallback/seeding
+ * awal (db/seed.ts).
+ * Seluruh antarmuka produksi (src/app/*) telah 100% terhubung secara dinamis
+ * ke database Neon PostgreSQL melalui Server Actions (Drizzle ORM).
+ * ============================================================================
+ */
+
 export interface BookItem {
   id: string;
   slug: string;

@@ -19,43 +19,50 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { DUMMY_MEMBERS, DUMMY_COPIES } from "@/data/dummy";
 import { BarcodeScanner } from "@/components/scanner/barcode-scanner";
-import { borrowBookAction } from "@/actions/circulation";
+import { borrowBookAction, lookupMemberAction, lookupBookCopyAction } from "@/actions/circulation";
 import { toast } from "@/components/ui/sonner";
 
 export default function PeminjamanStaffPage() {
   const router = useRouter();
-  const [nisNim, setNisNim] = useState("2024001");
-  const [copyCode, setCopyCode] = useState("PKC-2024-001-003");
-  const [selectedMember, setSelectedMember] = useState<typeof DUMMY_MEMBERS[0] | null>(
-    DUMMY_MEMBERS[0]
-  );
-  const [selectedCopy, setSelectedCopy] = useState<typeof DUMMY_COPIES[0] | null>(
-    DUMMY_COPIES[2]
-  );
+  const [nisNim, setNisNim] = useState("");
+  const [copyCode, setCopyCode] = useState("");
+  const [selectedMember, setSelectedMember] = useState<any>(null);
+  const [selectedCopy, setSelectedCopy] = useState<any>(null);
   const [isProcessing, setIsProcessing] = useState(false);
   const [showCamera, setShowCamera] = useState(false);
 
-  const handleCheckMember = (e?: React.FormEvent) => {
+  const handleCheckMember = async (e?: React.FormEvent) => {
     if (e) e.preventDefault();
-    const found = DUMMY_MEMBERS.find((m) => m.nisNim === nisNim.trim());
-    if (found) {
-      setSelectedMember(found);
-      toast.success(`Anggota Ditemukan: ${found.name}`);
+    if (!nisNim.trim()) {
+      toast.error("Masukkan NIS/NIM terlebih dahulu!");
+      return;
+    }
+    const res = await lookupMemberAction(nisNim.trim());
+    if (res.success && res.member) {
+      setSelectedMember(res.member);
+      toast.success(`Anggota Ditemukan: ${res.member.name}`);
     } else {
-      toast.error("Anggota dengan NIS/NIM tersebut tidak ditemukan!");
+      setSelectedMember(null);
+      toast.error(res.error || "Anggota tidak ditemukan!");
     }
   };
 
-  const checkCopyByCode = (code: string) => {
-    const found = DUMMY_COPIES.find((c) => c.copyCode.toLowerCase() === code.trim().toLowerCase());
-    if (found) {
-      setSelectedCopy(found);
-      setCopyCode(found.copyCode);
-      toast.success(`Eksemplar Ditemukan: ${found.bookTitle}`);
+  const checkCopyByCode = async (code: string) => {
+    if (!code.trim()) return;
+    const res = await lookupBookCopyAction(code.trim());
+    if (res.success && res.copy) {
+      setSelectedCopy({
+        copyCode: res.copy.copyCode,
+        bookTitle: res.copy.title,
+        shelfLocation: res.copy.shelf,
+        status: res.copy.status,
+      });
+      setCopyCode(res.copy.copyCode);
+      toast.success(`Eksemplar Ditemukan: ${res.copy.title}`);
     } else {
-      toast.error(`Kode eksemplar "${code}" tidak ditemukan!`);
+      setSelectedCopy(null);
+      toast.error(res.error || `Kode eksemplar "${code}" tidak ditemukan!`);
     }
   };
 

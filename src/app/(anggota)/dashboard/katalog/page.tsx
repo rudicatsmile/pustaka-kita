@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import {
@@ -19,14 +19,27 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { DUMMY_BOOKS, DUMMY_CATEGORIES } from "@/data/dummy";
+import { getBooksAction } from "@/actions/books";
 import { toast } from "@/components/ui/sonner";
 
 export default function MemberKatalogPage() {
+  const [books, setBooks] = useState<any[]>([]);
+  const [categories, setCategories] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [selectedCat, setSelectedCat] = useState("Semua");
 
-  const filtered = DUMMY_BOOKS.filter((b) => {
+  useEffect(() => {
+    getBooksAction()
+      .then((res) => {
+        setBooks(res.books);
+        setCategories(res.categories);
+      })
+      .catch((e) => console.error("Gagal memuat katalog buku:", e))
+      .finally(() => setLoading(false));
+  }, []);
+
+  const filtered = books.filter((b) => {
     const matchQ =
       b.title.toLowerCase().includes(search.toLowerCase()) ||
       b.author.toLowerCase().includes(search.toLowerCase());
@@ -48,7 +61,7 @@ export default function MemberKatalogPage() {
             Katalog Buku PustakaKita
           </h1>
           <p className="text-xs text-muted-foreground">
-            Cari buku fisik untuk dipinjam mandiri atau baca langsung versi digitalnya.
+            Cari buku fisik untuk dipinjam mandiri atau baca langsung versi digitalnya dari database.
           </p>
         </div>
         <Link href="/dashboard/scan">
@@ -59,113 +72,121 @@ export default function MemberKatalogPage() {
         </Link>
       </div>
 
-      {/* Filter and Search Bar */}
+      {/* Search and Category Filter Bar */}
       <div className="flex flex-col sm:flex-row gap-3">
         <div className="relative flex-1">
-          <Search className="absolute left-3.5 top-3.5 h-4 w-4 text-muted-foreground" />
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            placeholder="Cari judul, penulis, atau topik buku..."
-            className="pl-10 text-xs"
+            placeholder="Cari judul buku, penulis, atau kata kunci..."
+            className="pl-9 text-xs"
           />
         </div>
-        <select
-          value={selectedCat}
-          onChange={(e) => setSelectedCat(e.target.value)}
-          className="h-11 rounded-xl border border-input bg-background px-3 text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-primary"
+      </div>
+
+      {/* Category Pills */}
+      <div className="flex flex-wrap gap-2">
+        <button
+          onClick={() => setSelectedCat("Semua")}
+          className={`rounded-xl px-3.5 py-1.5 text-xs font-bold transition-all ${
+            selectedCat === "Semua"
+              ? "bg-primary text-primary-foreground shadow-sm"
+              : "bg-muted text-muted-foreground hover:bg-muted/80"
+          }`}
         >
-          <option value="Semua">Semua Kategori</option>
-          {DUMMY_CATEGORIES.map((c) => (
-            <option key={c.id} value={c.name}>
-              {c.name}
-            </option>
-          ))}
-        </select>
+          Semua ({books.length})
+        </button>
+        {categories.map((c) => (
+          <button
+            key={c.id}
+            onClick={() => setSelectedCat(c.name)}
+            className={`rounded-xl px-3.5 py-1.5 text-xs font-bold transition-all ${
+              selectedCat === c.name
+                ? "bg-primary text-primary-foreground shadow-sm"
+                : "bg-muted text-muted-foreground hover:bg-muted/80"
+            }`}
+          >
+            {c.name}
+          </button>
+        ))}
       </div>
 
       {/* Books Grid */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-        {filtered.map((book) => (
-          <Card
-            key={book.id}
-            className="group flex flex-col justify-between overflow-hidden hover:border-primary/40 hover:shadow-md transition-all"
-          >
-            <div className="relative aspect-[3/4] w-full overflow-hidden bg-muted">
-              <Image
-                src={book.coverUrl}
-                alt={book.title}
-                fill
-                className="object-cover transition-transform duration-300 group-hover:scale-105"
-                sizes="(max-width: 768px) 100vw, 33vw"
-              />
-              <div className="absolute top-3 left-3">
-                <Badge variant="secondary" className="shadow-sm font-bold text-[10px]">
-                  {book.category}
-                </Badge>
-              </div>
-            </div>
-
-            <CardContent className="p-5 flex-1 flex flex-col justify-between space-y-4">
-              <div>
-                <h3 className="font-heading text-base font-bold text-foreground line-clamp-1 group-hover:text-primary transition-colors">
-                  {book.title}
-                </h3>
-                <p className="text-xs text-muted-foreground line-clamp-1 mt-0.5">
-                  {book.author} ({book.publicationYear})
-                </p>
-                <p className="text-xs text-muted-foreground/80 line-clamp-2 mt-2 leading-relaxed">
-                  {book.synopsis}
-                </p>
-              </div>
-
-              <div className="border-t border-border pt-3 space-y-2.5">
-                <div className="flex items-center justify-between text-xs">
-                  <span className="font-mono text-muted-foreground">{book.shelfLocation}</span>
-                  <span
-                    className={`font-semibold ${
-                      book.availableCopies > 0 ? "text-emerald-600" : "text-rose-600"
-                    }`}
-                  >
-                    {book.availableCopies > 0
-                      ? `${book.availableCopies} Tersedia`
-                      : "Stok Habis"}
-                  </span>
+      {loading ? (
+        <div className="p-12 text-center text-xs text-muted-foreground">
+          Memuat koleksi buku dari database...
+        </div>
+      ) : filtered.length === 0 ? (
+        <Card className="rounded-2xl border border-dashed border-border p-12 text-center space-y-2">
+          <BookOpen className="mx-auto h-8 w-8 text-muted-foreground/60" />
+          <p className="font-semibold text-foreground text-sm">Tidak ada buku yang ditemukan</p>
+          <p className="text-xs text-muted-foreground">Coba gunakan kata kunci pencarian yang lain.</p>
+        </Card>
+      ) : (
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+          {filtered.map((b) => (
+            <Card
+              key={b.id}
+              className="group flex flex-col justify-between overflow-hidden hover:border-primary/40 hover:shadow-lg transition-all"
+            >
+              <div className="p-5 flex gap-4">
+                <div className="relative h-36 w-24 shrink-0 overflow-hidden rounded-xl border bg-muted shadow-sm">
+                  {b.coverUrl ? (
+                    <Image src={b.coverUrl} alt={b.title} fill className="object-cover" sizes="96px" />
+                  ) : (
+                    <div className="h-full w-full flex items-center justify-center text-xs font-bold text-muted-foreground">
+                      Buku
+                    </div>
+                  )}
                 </div>
+                <div className="min-w-0 flex-1 space-y-1.5">
+                  <Badge variant="secondary" className="text-[10px] font-bold">
+                    {b.category}
+                  </Badge>
+                  <h3 className="font-heading text-base font-bold text-foreground line-clamp-1 group-hover:text-primary transition-colors">
+                    {b.title}
+                  </h3>
+                  <p className="text-xs text-muted-foreground line-clamp-1">Karya: {b.author}</p>
+                  <div className="flex items-center gap-1 text-xs text-amber-500 font-bold">
+                    <Star className="h-3.5 w-3.5 fill-current" />
+                    <span>{b.rating}</span>
+                  </div>
+                  <p className="text-[11px] text-emerald-600 font-semibold flex items-center gap-1 pt-1">
+                    <CheckCircle2 className="h-3.5 w-3.5" />
+                    {b.availableCopies} dari {b.totalCopies} tersedia
+                  </p>
+                </div>
+              </div>
 
-                <div className="grid grid-cols-2 gap-2">
-                  <Link href={`/katalog/${book.slug}`}>
-                    <Button variant="outline" size="sm" className="w-full text-xs font-bold">
+              <div className="border-t border-border bg-muted/20 px-5 py-3 flex items-center justify-between gap-2">
+                <span className="font-mono text-[11px] text-muted-foreground flex items-center gap-1">
+                  <MapPin className="h-3 w-3" />
+                  {b.shelfLocation}
+                </span>
+
+                <div className="flex items-center gap-1.5">
+                  <Link href={`/katalog/${b.slug}`}>
+                    <Button variant="outline" size="sm" className="text-xs font-bold h-8">
                       Detail
                     </Button>
                   </Link>
-                  {book.availableCopies > 0 ? (
-                    <Link href="/dashboard/scan">
-                      <Button
-                        onClick={() => handleQuickBorrow(book.title)}
-                        size="sm"
-                        className="w-full text-xs font-bold"
-                      >
-                        Pinjam
-                      </Button>
-                    </Link>
-                  ) : (
-                    <Link href={`/katalog/${book.slug}`}>
-                      <Button
-                        variant="secondary"
-                        size="sm"
-                        className="w-full text-xs font-bold"
-                      >
-                        Reservasi
-                      </Button>
-                    </Link>
-                  )}
+                  <Link href="/dashboard/scan">
+                    <Button
+                      onClick={() => handleQuickBorrow(b.title)}
+                      size="sm"
+                      className="text-xs font-bold h-8 gap-1 shadow-sm"
+                    >
+                      <QrCode className="h-3.5 w-3.5" />
+                      Pinjam
+                    </Button>
+                  </Link>
                 </div>
               </div>
-            </CardContent>
-          </Card>
-        ))}
-      </div>
+            </Card>
+          ))}
+        </div>
+      )}
     </div>
   );
 }

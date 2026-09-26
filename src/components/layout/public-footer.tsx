@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { BookOpen, Sparkles, MapPin, Clock, Phone, Mail, MessageCircle } from "lucide-react";
-import { SYSTEM_CONFIG } from "@/data/dummy";
+import { LIBRARY_CONFIG } from "@/lib/config";
 
 export function PublicFooter() {
   return (
@@ -99,20 +99,20 @@ export function PublicFooter() {
             <div className="space-y-2 text-sm text-muted-foreground">
               <div className="flex items-start gap-2">
                 <MapPin className="h-4 w-4 text-primary shrink-0 mt-0.5" />
-                <span className="text-xs">{SYSTEM_CONFIG.libraryAddress}</span>
+                <span className="text-xs">{LIBRARY_CONFIG.libraryAddress}</span>
               </div>
               <div className="flex items-center gap-2">
                 <Phone className="h-4 w-4 text-primary shrink-0" />
-                <span className="text-xs">{SYSTEM_CONFIG.libraryPhone}</span>
+                <span className="text-xs">{LIBRARY_CONFIG.libraryPhone}</span>
               </div>
               <div className="flex items-center gap-2">
                 <Mail className="h-4 w-4 text-primary shrink-0" />
-                <span className="text-xs">{SYSTEM_CONFIG.libraryEmail}</span>
+                <span className="text-xs">{LIBRARY_CONFIG.libraryEmail}</span>
               </div>
               <div className="flex items-center gap-2 pt-1">
                 <MessageCircle className="h-4 w-4 text-emerald-600 shrink-0" />
                 <span className="text-xs font-semibold text-foreground">
-                  WA Bot: {SYSTEM_CONFIG.whatsappSenderNumber}
+                  WA Bot: {LIBRARY_CONFIG.whatsappSenderNumber}
                 </span>
               </div>
             </div>

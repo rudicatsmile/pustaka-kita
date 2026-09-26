@@ -12,7 +12,6 @@ import {
 import { Metadata } from "next";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { SYSTEM_CONFIG } from "@/data/dummy";
 
 export const metadata: Metadata = {
   title: "Tentang Kami | PustakaKitaCeria",

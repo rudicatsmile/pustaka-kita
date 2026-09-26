@@ -14,7 +14,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
-import { SYSTEM_CONFIG } from "@/data/dummy";
+import { LIBRARY_CONFIG } from "@/lib/config";
 import { toast } from "@/components/ui/sonner";
 
 export default function KontakPage() {
@@ -71,7 +71,7 @@ export default function KontakPage() {
                 <div>
                   <p className="font-semibold text-foreground">Alamat Fisik</p>
                   <p className="text-xs text-muted-foreground leading-relaxed mt-0.5">
-                    {SYSTEM_CONFIG.libraryAddress}
+                    {LIBRARY_CONFIG.libraryAddress}
                   </p>
                 </div>
               </div>
@@ -83,7 +83,7 @@ export default function KontakPage() {
                 <div>
                   <p className="font-semibold text-foreground">WhatsApp Hotline Perpustakaan</p>
                   <p className="text-xs font-mono font-bold text-emerald-700 mt-0.5">
-                    {SYSTEM_CONFIG.whatsappSenderNumber}
+                    {LIBRARY_CONFIG.whatsappSenderNumber}
                   </p>
                   <p className="text-[11px] text-muted-foreground">Aktif pada jam kerja operasional</p>
                 </div>
@@ -96,7 +96,7 @@ export default function KontakPage() {
                 <div>
                   <p className="font-semibold text-foreground">Surel Resmi</p>
                   <p className="text-xs font-mono text-muted-foreground mt-0.5">
-                    {SYSTEM_CONFIG.libraryEmail}
+                    {LIBRARY_CONFIG.libraryEmail}
                   </p>
                 </div>
               </div>
@@ -108,7 +108,7 @@ export default function KontakPage() {
                 <div>
                   <p className="font-semibold text-foreground">Jam Pelayanan</p>
                   <p className="text-xs text-muted-foreground mt-0.5">
-                    {SYSTEM_CONFIG.operatingHours}
+                    {LIBRARY_CONFIG.operationalHours}
                   </p>
                 </div>
               </div>

@@ -14,7 +14,7 @@ import {
 import { Metadata } from "next";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { SYSTEM_CONFIG } from "@/data/dummy";
+import { LIBRARY_CONFIG } from "@/lib/config";
 
 export const metadata: Metadata = {
   title: "Panduan Penggunaan Layanan Perpustakaan | PustakaKitaCeria",
@@ -44,7 +44,7 @@ export default function PanduanPage() {
       num: "03",
       icon: Clock,
       title: "Aturan Durasi Pinjam & Kuota",
-      desc: `Setiap anggota aktif dapat meminjam maksimal ${SYSTEM_CONFIG.maxBooksPerMember} buku secara bersamaan selama ${SYSTEM_CONFIG.loanDurationDays} hari kalender. Anggota berhak melakukan perpanjangan (renewal) 1 kali jika buku belum melewati tanggal jatuh tempo dan tidak sedang direservasi orang lain.`,
+      desc: `Setiap anggota aktif dapat meminjam maksimal ${LIBRARY_CONFIG.maxActiveLoans} buku secara bersamaan selama ${LIBRARY_CONFIG.loanDurationDays} hari kalender. Anggota berhak melakukan perpanjangan (renewal) 1 kali jika buku belum melewati tanggal jatuh tempo dan tidak sedang direservasi orang lain.`,
       actionText: "Cek Riwayat Pinjaman",
       actionHref: "/dashboard/riwayat",
     },
@@ -52,7 +52,7 @@ export default function PanduanPage() {
       num: "04",
       icon: Receipt,
       title: "Ketentuan Denda & Pengingat WhatsApp",
-      desc: `Keterlambatan pengembalian buku dikenakan denda sebesar Rp ${SYSTEM_CONFIG.finePerDay.toLocaleString("id-ID")} per hari per eksemplar. Sistem akan otomatis mengirimkan pengingat H-1 dan notifikasi saat denda mulai berjalan ke nomor WhatsApp terdaftar.`,
+      desc: `Keterlambatan pengembalian buku dikenakan denda sebesar Rp ${LIBRARY_CONFIG.dailyFineAmount.toLocaleString("id-ID")} per hari per eksemplar. Sistem akan otomatis mengirimkan pengingat H-1 dan notifikasi saat denda mulai berjalan ke nomor WhatsApp terdaftar.`,
       actionText: "Pelajari Status Denda",
       actionHref: "/dashboard/denda",
     },
@@ -60,7 +60,7 @@ export default function PanduanPage() {
       num: "05",
       icon: CreditCard,
       title: "Pelunasan Denda via Transfer Manual",
-      desc: `Jika memiliki denda, buka halaman Denda Saya, lakukan transfer persis sesuai nominal ke ${SYSTEM_CONFIG.bankName} No. Rek ${SYSTEM_CONFIG.bankAccountNumber} a.n. ${SYSTEM_CONFIG.bankAccountName}, lalu upload foto bukti transfer. Pustakawan akan memverifikasi dan akunmu langsung kembali aktif.`,
+      desc: `Jika memiliki denda, buka halaman Denda Saya, lakukan transfer persis sesuai nominal ke ${LIBRARY_CONFIG.bankName} No. Rek ${LIBRARY_CONFIG.bankAccountNumber} a.n. ${LIBRARY_CONFIG.bankAccountName}, lalu upload foto bukti transfer. Pustakawan akan memverifikasi dan akunmu langsung kembali aktif.`,
       actionText: "Form Upload Bukti",
       actionHref: "/dashboard/denda",
     },

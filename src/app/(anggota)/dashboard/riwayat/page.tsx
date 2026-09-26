@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import {
   Clock,
@@ -23,29 +23,48 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { DUMMY_LOANS, LoanItem } from "@/data/dummy";
+import { getMemberLoansHistory, renewMemberLoanAction } from "@/actions/member";
 import { toast } from "@/components/ui/sonner";
 
 export default function RiwayatPage() {
-  const [loans, setLoans] = useState<LoanItem[]>(DUMMY_LOANS);
+  const [loans, setLoans] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
   const [filterTab, setFilterTab] = useState<"semua" | "dipinjam" | "dikembalikan" | "terlambat">("semua");
+
+  const loadLoans = async () => {
+    try {
+      const data = await getMemberLoansHistory("semua");
+      setLoans(data);
+    } catch (e) {
+      console.error("Gagal memuat riwayat:", e);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    loadLoans();
+  }, []);
 
   const filteredLoans = loans.filter((l) => {
     if (filterTab === "semua") return true;
     return l.status === filterTab;
   });
 
-  const handleRenew = (id: string, title: string) => {
-    setLoans((prev) =>
-      prev.map((l) =>
-        l.id === id
-          ? { ...l, renewedCount: l.renewedCount + 1, dueDate: "2024-12-02" }
-          : l
-      )
-    );
-    toast.success("Perpanjangan Berhasil! 🎉", {
-      description: `Buku "${title}" berhasil diperpanjang 7 hari ke depan (Jatuh tempo baru: 02 Des 2024).`,
-    });
+  const handleRenew = async (id: string, title: string) => {
+    try {
+      const res = await renewMemberLoanAction(id);
+      if (res.success) {
+        toast.success("Perpanjangan Berhasil! 🎉", {
+          description: `Buku "${title}" berhasil diperpanjang 7 hari ke depan (Jatuh tempo baru: ${res.newDueDate}).`,
+        });
+        loadLoans();
+      } else {
+        toast.error("Gagal memperpanjang:", { description: res.error });
+      }
+    } catch (e: any) {
+      toast.error("Terjadi kesalahan:", { description: e.message });
+    }
   };
 
   return (
@@ -56,7 +75,7 @@ export default function RiwayatPage() {
             Riwayat Peminjaman Buku
           </h1>
           <p className="text-xs text-muted-foreground">
-            Daftar seluruh transaksi sirkulasi aktif dan arsip pengembalian buku Anda.
+            Daftar seluruh transaksi sirkulasi aktif dan arsip pengembalian buku Anda dari database.
           </p>
         </div>
       </div>
@@ -85,99 +104,101 @@ export default function RiwayatPage() {
 
       {/* Loans Table */}
       <Card className="rounded-2xl border border-border shadow-sm overflow-hidden">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead className="text-xs">Judul Buku & Kode Eksemplar</TableHead>
-              <TableHead className="text-xs">Tanggal Pinjam</TableHead>
-              <TableHead className="text-xs">Jatuh Tempo</TableHead>
-              <TableHead className="text-xs">Status</TableHead>
-              <TableHead className="text-xs">Denda</TableHead>
-              <TableHead className="text-xs text-right">Aksi</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {filteredLoans.map((loan) => (
-              <TableRow key={loan.id}>
-                <TableCell>
-                  <p className="font-heading font-bold text-foreground text-xs">{loan.bookTitle}</p>
-                  <p className="font-mono text-[11px] text-primary">{loan.copyCode}</p>
-                </TableCell>
-                <TableCell className="font-mono text-xs">{loan.borrowedAt}</TableCell>
-                <TableCell className="font-mono text-xs">
-                  <span
-                    className={
-                      loan.status === "terlambat"
-                        ? "text-rose-600 font-bold"
-                        : "text-foreground"
-                    }
-                  >
-                    {loan.dueDate}
-                  </span>
-                  {loan.returnedAt && (
-                    <span className="block text-[10px] text-muted-foreground">
-                      Kembali: {loan.returnedAt}
+        {loading ? (
+          <div className="p-12 text-center text-xs text-muted-foreground">
+            Memuat riwayat peminjaman dari database...
+          </div>
+        ) : filteredLoans.length === 0 ? (
+          <div className="p-12 text-center text-xs text-muted-foreground space-y-2">
+            <Clock className="mx-auto h-8 w-8 text-muted-foreground/60" />
+            <p className="font-semibold text-foreground text-sm">Tidak ada transaksi yang cocok</p>
+            <p>Belum ada riwayat transaksi pada kategori ini.</p>
+          </div>
+        ) : (
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead className="text-xs">Judul Buku & Kode Eksemplar</TableHead>
+                <TableHead className="text-xs">Tanggal Pinjam</TableHead>
+                <TableHead className="text-xs">Jatuh Tempo</TableHead>
+                <TableHead className="text-xs">Status</TableHead>
+                <TableHead className="text-xs text-right">Aksi</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {filteredLoans.map((loan) => (
+                <TableRow key={loan.id}>
+                  <TableCell>
+                    <p className="font-heading font-bold text-foreground text-xs">{loan.bookTitle}</p>
+                    <p className="font-mono text-[11px] text-primary">{loan.copyCode}</p>
+                  </TableCell>
+                  <TableCell className="font-mono text-xs">{loan.borrowedAt}</TableCell>
+                  <TableCell className="font-mono text-xs">
+                    <span
+                      className={
+                        loan.status === "terlambat"
+                          ? "text-rose-600 font-bold"
+                          : "text-foreground"
+                      }
+                    >
+                      {loan.dueDate}
                     </span>
-                  )}
-                </TableCell>
-                <TableCell>
-                  {loan.status === "terlambat" && (
-                    <Badge variant="destructive" className="text-[10px]">
-                      Terlambat {loan.daysLate} Hari
-                    </Badge>
-                  )}
-                  {loan.status === "dipinjam" && (
-                    <Badge variant="warning" className="text-[10px]">
-                      Dipinjam (Aktif)
-                    </Badge>
-                  )}
-                  {loan.status === "dikembalikan" && (
-                    <Badge variant="success" className="text-[10px]">
-                      Selesai
-                    </Badge>
-                  )}
-                </TableCell>
-                <TableCell className="text-xs font-mono">
-                  {loan.fineAmount > 0 ? (
-                    <span className="text-rose-600 font-bold">
-                      Rp {loan.fineAmount.toLocaleString("id-ID")}
-                    </span>
-                  ) : (
-                    <span className="text-muted-foreground">-</span>
-                  )}
-                </TableCell>
-                <TableCell className="text-right">
-                  <div className="flex items-center justify-end gap-1.5">
-                    {loan.status === "dipinjam" && loan.renewedCount === 0 && (
-                      <Button
-                        onClick={() => handleRenew(loan.id, loan.bookTitle)}
-                        variant="outline"
-                        size="sm"
-                        className="text-xs font-bold h-8 px-2.5"
-                      >
-                        Perpanjang
-                      </Button>
+                    {loan.returnedAt && (
+                      <span className="block text-[10px] text-muted-foreground">
+                        Kembali: {loan.returnedAt}
+                      </span>
                     )}
+                  </TableCell>
+                  <TableCell>
                     {loan.status === "terlambat" && (
-                      <Link href="/dashboard/denda">
+                      <Badge variant="destructive" className="text-[10px]">
+                        Terlambat
+                      </Badge>
+                    )}
+                    {loan.status === "dipinjam" && (
+                      <Badge variant="warning" className="text-[10px]">
+                        Dipinjam (Aktif)
+                      </Badge>
+                    )}
+                    {loan.status === "dikembalikan" && (
+                      <Badge variant="success" className="text-[10px]">
+                        Selesai
+                      </Badge>
+                    )}
+                  </TableCell>
+                  <TableCell className="text-right">
+                    <div className="flex items-center justify-end gap-1.5">
+                      {loan.status === "dipinjam" && loan.renewedCount === 0 && (
                         <Button
-                          variant="destructive"
+                          onClick={() => handleRenew(loan.id, loan.bookTitle)}
+                          variant="outline"
                           size="sm"
                           className="text-xs font-bold h-8 px-2.5"
                         >
-                          Bayar Denda
+                          Perpanjang
                         </Button>
-                      </Link>
-                    )}
-                    {loan.status === "dikembalikan" && (
-                      <span className="text-xs text-muted-foreground">Arsip</span>
-                    )}
-                  </div>
-                </TableCell>
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
+                      )}
+                      {loan.status === "terlambat" && (
+                        <Link href="/dashboard/denda">
+                          <Button
+                            variant="destructive"
+                            size="sm"
+                            className="text-xs font-bold h-8 px-2.5"
+                          >
+                            Bayar Denda
+                          </Button>
+                        </Link>
+                      )}
+                      {loan.status === "dikembalikan" && (
+                        <span className="text-xs text-muted-foreground">Arsip</span>
+                      )}
+                    </div>
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        )}
       </Card>
     </div>
   );

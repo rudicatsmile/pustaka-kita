@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import {
@@ -32,13 +32,26 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { DUMMY_BOOKS, DUMMY_CATEGORIES, BookItem } from "@/data/dummy";
+import { BookItem } from "@/types";
+import { getBooksAction, deleteBookAction } from "@/actions/books";
 import { toast } from "@/components/ui/sonner";
 
 export default function ManajemenBukuPage() {
-  const [books, setBooks] = useState<BookItem[]>(DUMMY_BOOKS);
+  const [books, setBooks] = useState<BookItem[]>([]);
+  const [categories, setCategories] = useState<any[]>([]);
   const [search, setSearch] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("Semua");
+
+  const loadBooks = () => {
+    getBooksAction().then((res) => {
+      setBooks(res.books as any);
+      setCategories(res.categories);
+    });
+  };
+
+  useEffect(() => {
+    loadBooks();
+  }, []);
 
   const filteredBooks = books.filter((b) => {
     const matchSearch =
@@ -49,11 +62,16 @@ export default function ManajemenBukuPage() {
     return matchSearch && matchCat;
   });
 
-  const handleDelete = (id: string, title: string) => {
-    setBooks((prev) => prev.filter((b) => b.id !== id));
-    toast.success("Buku Berhasil Dihapus", {
-      description: `Buku "${title}" telah dihapus dari katalog bibliografi (Audit Log tercatat).`,
-    });
+  const handleDelete = async (id: string, title: string) => {
+    const res = await deleteBookAction(id);
+    if (res.success) {
+      toast.success("Buku Berhasil Dihapus", {
+        description: `Buku "${title}" telah dihapus dari katalog bibliografi (Audit Log tercatat).`,
+      });
+      loadBooks();
+    } else {
+      toast.error("Gagal menghapus buku:", { description: res.error });
+    }
   };
 
   return (
@@ -94,7 +112,7 @@ export default function ManajemenBukuPage() {
           className="h-11 rounded-xl border border-input bg-background px-3 text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-primary"
         >
           <option value="Semua">Semua Kategori</option>
-          {DUMMY_CATEGORIES.map((c) => (
+          {categories.map((c) => (
             <option key={c.id} value={c.name}>
               {c.name}
             </option>

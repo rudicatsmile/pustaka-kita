@@ -1,22 +1,19 @@
 "use client";
 
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import {
-  Shield,
   Users,
   Settings,
   MessageSquare,
   History,
   BookOpen,
-  CheckCircle2,
-  AlertTriangle,
-  ArrowRight,
-  Server,
-  Layers,
+  Loader2,
+  RefreshCw,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Card, CardContent } from "@/components/ui/card";
+import { Card } from "@/components/ui/card";
 import {
   Table,
   TableBody,
@@ -25,9 +22,45 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { DUMMY_AUDIT_LOGS, DUMMY_MEMBERS, DUMMY_BOOKS } from "@/data/dummy";
+import { toast } from "@/components/ui/sonner";
+import { AuditLogItem } from "@/types";
+import { getAdminDashboardStats } from "@/actions/admin";
 
 export default function DasborAdminPage() {
+  const [stats, setStats] = useState<{
+    totalMembers: number;
+    totalStaff: number;
+    totalBooks: number;
+    totalLogs: number;
+    recentLogs: AuditLogItem[];
+  }>({
+    totalMembers: 0,
+    totalStaff: 0,
+    totalBooks: 0,
+    totalLogs: 0,
+    recentLogs: [],
+  });
+  const [isLoading, setIsLoading] = useState(true);
+
+  async function loadStats() {
+    setIsLoading(true);
+    try {
+      const data = await getAdminDashboardStats();
+      setStats({
+        ...data,
+        recentLogs: data.recentLogs as AuditLogItem[],
+      });
+    } catch (e: any) {
+      toast.error("Gagal memuat statistik admin: " + (e.message || "Error"));
+    } finally {
+      setIsLoading(false);
+    }
+  }
+
+  useEffect(() => {
+    loadStats();
+  }, []);
+
   return (
     <div className="space-y-8">
       {/* Header */}
@@ -48,6 +81,16 @@ export default function DasborAdminPage() {
         </div>
 
         <div className="flex items-center gap-2">
+          <Button
+            onClick={loadStats}
+            variant="ghost"
+            size="sm"
+            disabled={isLoading}
+            className="h-8 gap-1.5 text-xs font-semibold"
+          >
+            <RefreshCw className={`h-3.5 w-3.5 ${isLoading ? "animate-spin" : ""}`} />
+            Segarkan
+          </Button>
           <Link href="/admin/pengaturan">
             <Button size="sm" variant="outline" className="font-bold text-xs gap-1.5">
               <Settings className="h-4 w-4" />
@@ -71,9 +114,11 @@ export default function DasborAdminPage() {
             <Users className="h-5 w-5 text-primary" />
           </div>
           <p className="font-heading text-2xl font-extrabold text-foreground">
-            {DUMMY_MEMBERS.length} Akun
+            {stats.totalMembers + stats.totalStaff} Akun
           </p>
-          <p className="text-[11px] text-muted-foreground">3 Anggota, 1 Pustakawan, 1 Admin</p>
+          <p className="text-[11px] text-muted-foreground">
+            {stats.totalMembers} Anggota, {stats.totalStaff} Staff / Admin
+          </p>
         </Card>
 
         <Card className="rounded-2xl border border-border p-5 space-y-2 shadow-sm">
@@ -82,9 +127,9 @@ export default function DasborAdminPage() {
             <BookOpen className="h-5 w-5 text-secondary" />
           </div>
           <p className="font-heading text-2xl font-extrabold text-foreground">
-            {DUMMY_BOOKS.length} Judul Buku
+            {stats.totalBooks} Judul Buku
           </p>
-          <p className="text-[11px] text-muted-foreground">Total 27 Salinan Eksemplar Fisik</p>
+          <p className="text-[11px] text-muted-foreground">Tersedia di katalog institusi</p>
         </Card>
 
         <Card className="rounded-2xl border border-border p-5 space-y-2 shadow-sm">
@@ -96,7 +141,7 @@ export default function DasborAdminPage() {
             <span className="h-2.5 w-2.5 rounded-full bg-emerald-500 animate-ping" />
             Terhubung & Aktif
           </p>
-          <p className="text-[11px] text-muted-foreground">Tingkat pengiriman sukses: 100%</p>
+          <p className="text-[11px] text-muted-foreground">Otomasi pengingat denda aktif</p>
         </Card>
 
         <Card className="rounded-2xl border border-border p-5 space-y-2 shadow-sm">
@@ -105,9 +150,9 @@ export default function DasborAdminPage() {
             <History className="h-5 w-5 text-accent" />
           </div>
           <p className="font-heading text-2xl font-extrabold text-foreground">
-            {DUMMY_AUDIT_LOGS.length} Log CUD
+            {stats.totalLogs} Log CUD
           </p>
-          <p className="text-[11px] text-muted-foreground">Retensi aman 2 tahun (Append-Only)</p>
+          <p className="text-[11px] text-muted-foreground">Retensi aman database (Append-Only)</p>
         </Card>
       </div>
 
@@ -184,47 +229,62 @@ export default function DasborAdminPage() {
         </div>
 
         <Card className="rounded-2xl border border-border shadow-sm overflow-hidden">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead className="text-xs">Waktu</TableHead>
-                <TableHead className="text-xs">Aktor</TableHead>
-                <TableHead className="text-xs">Aksi</TableHead>
-                <TableHead className="text-xs">Entitas</TableHead>
-                <TableHead className="text-xs">Deskripsi Perubahan</TableHead>
-                <TableHead className="text-xs">IP Address</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {DUMMY_AUDIT_LOGS.map((log) => (
-                <TableRow key={log.id}>
-                  <TableCell className="font-mono text-xs">{log.createdAt}</TableCell>
-                  <TableCell className="font-heading font-bold text-xs">{log.actorName}</TableCell>
-                  <TableCell>
-                    <Badge
-                      variant={
-                        log.action === "create"
-                          ? "success"
-                          : log.action === "update"
-                          ? "warning"
-                          : log.action === "verify"
-                          ? "default"
-                          : "destructive"
-                      }
-                      className="text-[10px] font-mono uppercase"
-                    >
-                      {log.action}
-                    </Badge>
-                  </TableCell>
-                  <TableCell className="font-mono text-xs text-primary">{log.entityType}</TableCell>
-                  <TableCell className="text-xs text-foreground/80">{log.description}</TableCell>
-                  <TableCell className="font-mono text-xs text-muted-foreground">
-                    {log.ipAddress}
-                  </TableCell>
+          {isLoading ? (
+            <div className="flex h-40 items-center justify-center">
+              <Loader2 className="h-6 w-6 animate-spin text-primary" />
+              <span className="ml-2 text-xs text-muted-foreground">Memuat audit log...</span>
+            </div>
+          ) : (
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead className="text-xs">Waktu</TableHead>
+                  <TableHead className="text-xs">Aktor</TableHead>
+                  <TableHead className="text-xs">Aksi</TableHead>
+                  <TableHead className="text-xs">Entitas</TableHead>
+                  <TableHead className="text-xs">Deskripsi Perubahan</TableHead>
+                  <TableHead className="text-xs">IP Address</TableHead>
                 </TableRow>
-              ))}
-            </TableBody>
-          </Table>
+              </TableHeader>
+              <TableBody>
+                {stats.recentLogs.length === 0 ? (
+                  <TableRow>
+                    <TableCell colSpan={6} className="text-center text-xs text-muted-foreground py-6">
+                      Belum ada rekaman audit log.
+                    </TableCell>
+                  </TableRow>
+                ) : (
+                  stats.recentLogs.map((log) => (
+                    <TableRow key={log.id}>
+                      <TableCell className="font-mono text-xs">{log.createdAt}</TableCell>
+                      <TableCell className="font-heading font-bold text-xs">{log.actorName}</TableCell>
+                      <TableCell>
+                        <Badge
+                          variant={
+                            log.action === "create"
+                              ? "success"
+                              : log.action === "update"
+                              ? "warning"
+                              : log.action === "verify"
+                              ? "default"
+                              : "destructive"
+                          }
+                          className="text-[10px] font-mono uppercase"
+                        >
+                          {log.action}
+                        </Badge>
+                      </TableCell>
+                      <TableCell className="font-mono text-xs text-primary">{log.entityType}</TableCell>
+                      <TableCell className="text-xs text-foreground/80">{log.description}</TableCell>
+                      <TableCell className="font-mono text-xs text-muted-foreground">
+                        {log.ipAddress}
+                      </TableCell>
+                    </TableRow>
+                  ))
+                )}
+              </TableBody>
+            </Table>
+          )}
         </Card>
       </div>
     </div>

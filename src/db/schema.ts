@@ -311,8 +311,38 @@ export const finesRelations = relations(fines, ({ one }) => ({
   verifier: one(users, { fields: [fines.verifiedBy], references: [users.id] }),
 }));
 
+export const categoriesRelations = relations(categories, ({ many }) => ({
+  books: many(books),
+}));
+
+export const ebooksRelations = relations(ebooks, ({ one, many }) => ({
+  book: one(books, { fields: [ebooks.bookId], references: [books.id] }),
+  progresses: many(ebookProgress),
+}));
+
+export const ebookProgressRelations = relations(ebookProgress, ({ one }) => ({
+  user: one(users, { fields: [ebookProgress.userId], references: [users.id] }),
+  ebook: one(ebooks, { fields: [ebookProgress.ebookId], references: [ebooks.id] }),
+}));
+
+export const reservationsRelations = relations(reservations, ({ one }) => ({
+  book: one(books, { fields: [reservations.bookId], references: [books.id] }),
+  member: one(users, { fields: [reservations.memberId], references: [users.id] }),
+}));
+
+export const notificationsRelations = relations(notifications, ({ one }) => ({
+  user: one(users, { fields: [notifications.userId], references: [users.id] }),
+}));
+
+export const auditLogsRelations = relations(auditLogs, ({ one }) => ({
+  actor: one(users, { fields: [auditLogs.actorId], references: [users.id] }),
+}));
+
 export const usersRelations = relations(users, ({ many }) => ({
   loans: many(loans),
   fines: many(fines),
   reservations: many(reservations),
+  notifications: many(notifications),
+  ebookProgresses: many(ebookProgress),
 }));
+

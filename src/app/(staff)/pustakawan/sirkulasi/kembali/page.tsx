@@ -18,30 +18,29 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { DUMMY_LOANS } from "@/data/dummy";
 import { BarcodeScanner } from "@/components/scanner/barcode-scanner";
-import { returnBookAction } from "@/actions/circulation";
+import { returnBookAction, lookupActiveLoanByCopyCodeAction } from "@/actions/circulation";
 import { toast } from "@/components/ui/sonner";
 
 export default function PengembalianStaffPage() {
   const router = useRouter();
-  const [copyCode, setCopyCode] = useState("PKC-2024-001-002");
-  const [activeLoan, setActiveLoan] = useState<typeof DUMMY_LOANS[0] | null>(DUMMY_LOANS[0]);
+  const [copyCode, setCopyCode] = useState("");
+  const [activeLoan, setActiveLoan] = useState<any>(null);
   const [waiveReason, setWaiveReason] = useState("");
   const [isWaiveMode, setIsWaiveMode] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
   const [showCamera, setShowCamera] = useState(false);
 
-  const checkLoanByCode = (code: string) => {
-    const found = DUMMY_LOANS.find(
-      (l) => l.copyCode.toLowerCase() === code.trim().toLowerCase() && l.status !== "dikembalikan"
-    );
-    if (found) {
-      setActiveLoan(found);
-      setCopyCode(found.copyCode);
-      toast.success(`Transaksi Ditemukan: ${found.bookTitle}`);
+  const checkLoanByCode = async (code: string) => {
+    if (!code.trim()) return;
+    const res = await lookupActiveLoanByCopyCodeAction(code.trim());
+    if (res.success && res.loan) {
+      setActiveLoan(res.loan);
+      setCopyCode(res.loan.copyCode);
+      toast.success(`Transaksi Ditemukan: ${res.loan.bookTitle}`);
     } else {
-      toast.error(`Tidak ada transaksi peminjaman aktif untuk kode eksemplar "${code}"!`);
+      setActiveLoan(null);
+      toast.error(res.error || `Tidak ada transaksi peminjaman aktif untuk kode eksemplar "${code}"!`);
     }
   };
 

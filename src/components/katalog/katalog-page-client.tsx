@@ -20,12 +20,41 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { DUMMY_BOOKS, DUMMY_CATEGORIES, BookItem } from "@/data/dummy";
+import { BookItem } from "@/types";
+import { getBooksAction } from "@/actions/books";
+import { useEffect } from "react";
 
-export function KatalogPageClient() {
+interface CategoryOption {
+  id: string;
+  name: string;
+  slug?: string;
+  count?: number;
+}
+
+interface KatalogPageClientProps {
+  initialBooks?: BookItem[];
+  initialCategories?: CategoryOption[];
+}
+
+export function KatalogPageClient({
+  initialBooks = [],
+  initialCategories = [],
+}: KatalogPageClientProps) {
   const searchParams = useSearchParams();
   const initialQuery = searchParams.get("q") || "";
   const initialCategory = searchParams.get("kategori") || "Semua Kategori";
+
+  const [books, setBooks] = useState<BookItem[]>(initialBooks);
+  const [categories, setCategories] = useState<CategoryOption[]>(initialCategories);
+
+  useEffect(() => {
+    if (books.length === 0) {
+      getBooksAction().then((res) => {
+        setBooks(res.books as any);
+        setCategories(res.categories);
+      });
+    }
+  }, [books.length]);
 
   const [search, setSearch] = useState(initialQuery);
   const [selectedCategory, setSelectedCategory] = useState(initialCategory);
@@ -33,12 +62,12 @@ export function KatalogPageClient() {
   const [sortBy, setSortBy] = useState<"terbaru" | "populer" | "judul">("populer");
 
   const filteredBooks = useMemo(() => {
-    return DUMMY_BOOKS.filter((book) => {
+    return books.filter((book) => {
       // Filter teks
       const matchSearch =
         book.title.toLowerCase().includes(search.toLowerCase()) ||
         book.author.toLowerCase().includes(search.toLowerCase()) ||
-        book.isbn.includes(search);
+        (book.isbn && book.isbn.includes(search));
 
       // Filter kategori
       const matchCategory =
@@ -59,7 +88,7 @@ export function KatalogPageClient() {
       if (sortBy === "judul") return a.title.localeCompare(b.title);
       return 0;
     });
-  }, [search, selectedCategory, availabilityFilter, sortBy]);
+  }, [books, search, selectedCategory, availabilityFilter, sortBy]);
 
   return (
     <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8 space-y-8">
@@ -166,22 +195,27 @@ export function KatalogPageClient() {
                 }`}
               >
                 <span>Semua Kategori</span>
-                <span className="text-[11px] font-mono opacity-80">{DUMMY_BOOKS.length}</span>
+                <span className="text-[11px] font-mono opacity-80">{books.length}</span>
               </button>
-              {DUMMY_CATEGORIES.map((cat) => (
-                <button
-                  key={cat.id}
-                  onClick={() => setSelectedCategory(cat.name)}
-                  className={`flex items-center justify-between rounded-xl px-3 py-2 text-xs font-medium transition-colors text-left ${
-                    selectedCategory === cat.name
-                      ? "bg-primary/10 text-primary font-bold"
-                      : "text-muted-foreground hover:bg-muted/60"
-                  }`}
-                >
-                  <span className="truncate pr-2">{cat.name}</span>
-                  <span className="text-[11px] font-mono opacity-80">{cat.count}</span>
-                </button>
-              ))}
+              {categories.map((cat) => {
+                const bookCount = cat.count !== undefined 
+                  ? cat.count 
+                  : books.filter((b) => b.category === cat.name).length;
+                return (
+                  <button
+                    key={cat.id}
+                    onClick={() => setSelectedCategory(cat.name)}
+                    className={`flex items-center justify-between rounded-xl px-3 py-2 text-xs font-medium transition-colors text-left ${
+                      selectedCategory === cat.name
+                        ? "bg-primary/10 text-primary font-bold"
+                        : "text-muted-foreground hover:bg-muted/60"
+                    }`}
+                  >
+                    <span className="truncate pr-2">{cat.name}</span>
+                    <span className="text-[11px] font-mono opacity-80">{bookCount}</span>
+                  </button>
+                );
+              })}
             </div>
           </div>
         </aside>

@@ -18,8 +18,7 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { DUMMY_EBOOKS } from "@/data/dummy";
-import { saveEbookProgressAction } from "@/actions/ebook";
+import { getEbookDetailAction, saveEbookProgressAction } from "@/actions/ebook";
 import { toast } from "@/components/ui/sonner";
 
 export default function EbookReaderPage({
@@ -28,13 +27,21 @@ export default function EbookReaderPage({
   params: Promise<{ id: string }>;
 }) {
   const resolvedParams = use(params);
-  const ebook = DUMMY_EBOOKS.find((e) => e.id === resolvedParams.id) || DUMMY_EBOOKS[0];
-
-  const [page, setPage] = useState(ebook.lastPage || 1);
+  const [ebook, setEbook] = useState<any>(null);
+  const [page, setPage] = useState(1);
   const [zoom, setZoom] = useState(100);
   const [themeMode, setThemeMode] = useState<"light" | "sepia" | "dark">("light");
   const [isSaved, setIsSaved] = useState(true);
   const [lastSavedTime, setLastSavedTime] = useState<string>("Baru saja");
+
+  useEffect(() => {
+    getEbookDetailAction(resolvedParams.id).then((eb) => {
+      if (eb) {
+        setEbook(eb);
+        setPage(eb.lastPage || 1);
+      }
+    });
+  }, [resolvedParams.id]);
 
   // Keep ref to latest page for auto-save interval
   const pageRef = useRef(page);
@@ -42,12 +49,13 @@ export default function EbookReaderPage({
 
   // Auto-save function calling Server Action
   const performSave = async (targetPage: number) => {
+    if (!ebook) return;
     setIsSaved(false);
     try {
       const res = await saveEbookProgressAction({
         ebookId: ebook.id,
         page: targetPage,
-        totalPages: ebook.totalPages,
+        totalPages: ebook.totalPages || 100,
       });
       if (res.success && res.savedAt) {
         setLastSavedTime(res.savedAt);
@@ -65,19 +73,20 @@ export default function EbookReaderPage({
       performSave(page);
     }, 1000);
     return () => clearTimeout(timer);
-  }, [page]);
+  }, [page, ebook]);
 
   // 2. Task 2.6: Recurring 10-second interval auto-save
   useEffect(() => {
+    if (!ebook) return;
     const interval = setInterval(() => {
       performSave(pageRef.current);
     }, 10000); // 10 seconds interval
 
     return () => clearInterval(interval);
-  }, [ebook.id]);
+  }, [ebook?.id]);
 
   const handleNextPage = () => {
-    if (page < ebook.totalPages) {
+    if (ebook && page < (ebook.totalPages || 100)) {
       setPage((prev) => prev + 1);
     }
   };
@@ -103,6 +112,14 @@ export default function EbookReaderPage({
     sepia: "bg-[#fbf0d9] text-[#5f4b32] border-[#e4d4ba]",
     dark: "bg-slate-950 text-slate-100 border-slate-800",
   };
+
+  if (!ebook) {
+    return (
+      <div className="fixed inset-0 z-50 flex items-center justify-center bg-background text-xs text-muted-foreground">
+        Memuat e-book dari database...
+      </div>
+    );
+  }
 
   return (
     <div className="fixed inset-0 z-50 flex flex-col bg-background">

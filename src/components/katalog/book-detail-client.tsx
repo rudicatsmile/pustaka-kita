@@ -31,9 +31,10 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import { BookItem, BookCopyItem } from "@/data/dummy";
+import { BookItem, BookCopyItem } from "@/types";
 import { toast } from "@/components/ui/sonner";
 import { createReservationAction } from "@/actions/reservations";
+import { Input } from "@/components/ui/input";
 
 interface BookDetailClientProps {
   book: BookItem;
@@ -49,12 +50,17 @@ export function BookDetailClient({
   const [reservationOpen, setReservationOpen] = useState(false);
   const [isReserved, setIsReserved] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [memberNis, setMemberNis] = useState("2024001");
 
   const handleReservation = async () => {
+    if (!memberNis.trim()) {
+      toast.error("Masukkan NIS/NIM kamu terlebih dahulu.");
+      return;
+    }
     setIsSubmitting(true);
     try {
       const res = await createReservationAction({
-        memberNisNim: "2024001", // Demo logged in member
+        memberNisNim: memberNis.trim(),
         bookId: book.id,
       });
 
@@ -152,15 +158,29 @@ export function BookDetailClient({
                       waktu 2×24 jam untuk mengambilnya di perpustakaan.
                     </DialogDescription>
                   </DialogHeader>
-                  <div className="rounded-xl bg-muted/60 p-4 text-xs space-y-1.5 my-2">
-                    <p className="flex justify-between">
-                      <span className="text-muted-foreground">Posisi Antrean Kamu:</span>
-                      <strong className="text-foreground">Urutan ke-1</strong>
-                    </p>
-                    <p className="flex justify-between">
-                      <span className="text-muted-foreground">Notifikasi Melalui:</span>
-                      <strong className="text-foreground font-mono">WhatsApp 0812-3456-7890</strong>
-                    </p>
+                  <div className="space-y-3 my-2">
+                    <div className="space-y-1">
+                      <label className="text-xs font-semibold text-foreground">
+                        Nomor Induk Siswa/Mahasiswa (NIS/NIM):
+                      </label>
+                      <Input
+                        type="text"
+                        placeholder="Contoh: 2024001"
+                        value={memberNis}
+                        onChange={(e) => setMemberNis(e.target.value)}
+                        className="text-xs font-mono"
+                      />
+                    </div>
+                    <div className="rounded-xl bg-muted/60 p-3 text-xs space-y-1">
+                      <p className="flex justify-between">
+                        <span className="text-muted-foreground">Posisi Antrean:</span>
+                        <strong className="text-foreground">Masuk Antrean Aktif</strong>
+                      </p>
+                      <p className="flex justify-between">
+                        <span className="text-muted-foreground">Notifikasi:</span>
+                        <span className="text-emerald-600 font-semibold">WhatsApp Otomatis</span>
+                      </p>
+                    </div>
                   </div>
                   <DialogFooter>
                     <Button variant="ghost" onClick={() => setReservationOpen(false)}>

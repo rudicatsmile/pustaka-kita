@@ -23,7 +23,8 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { CURRENT_USER } from "@/data/dummy";
+import { getMemberDashboardSummary } from "@/actions/member";
+import { useEffect } from "react";
 
 export default function AnggotaLayout({
   children,
@@ -32,6 +33,34 @@ export default function AnggotaLayout({
 }) {
   const pathname = usePathname();
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [memberInfo, setMemberInfo] = useState<{
+    name: string;
+    nisNim: string;
+    classOrMajor?: string | null;
+    totalUnpaidFines: number;
+  } | null>(null);
+
+  useEffect(() => {
+    getMemberDashboardSummary().then((res) => {
+      if (res.user) {
+        setMemberInfo({
+          name: res.user.name,
+          nisNim: res.user.nisNim,
+          classOrMajor: res.user.classOrMajor,
+          totalUnpaidFines: res.totalUnpaidFines,
+        });
+      }
+    });
+  }, []);
+
+  const initials = memberInfo?.name
+    ? memberInfo.name
+        .split(" ")
+        .slice(0, 2)
+        .map((w: string) => w[0])
+        .join("")
+        .toUpperCase()
+    : "AK";
 
   const menuItems = [
     { href: "/dashboard", label: "Dasbor Saya", icon: LayoutDashboard },
@@ -78,14 +107,14 @@ export default function AnggotaLayout({
         <div className="mt-6 rounded-2xl border border-primary/20 bg-primary/5 p-3.5">
           <div className="flex items-center gap-3">
             <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary text-primary-foreground font-bold text-sm">
-              {CURRENT_USER.name.charAt(0)}
+              {initials || "A"}
             </div>
             <div className="min-w-0 flex-1">
               <p className="truncate text-sm font-bold text-foreground">
-                {CURRENT_USER.name}
+                {memberInfo?.name || "Memuat..."}
               </p>
               <p className="font-mono text-xs text-muted-foreground">
-                NIS: {CURRENT_USER.nisNim} • {CURRENT_USER.classOrMajor}
+                NIS: {memberInfo?.nisNim || "-"} {memberInfo?.classOrMajor ? `• ${memberInfo.classOrMajor}` : ""}
               </p>
             </div>
           </div>
@@ -174,10 +203,17 @@ export default function AnggotaLayout({
             </Link>
 
             <Link href="/dashboard/denda">
-              <Button variant="outline" size="sm" className="relative rounded-xl text-xs gap-1.5 border-rose-200 text-rose-700 bg-rose-50/50 hover:bg-rose-100">
-                <ReceiptText className="h-4 w-4" />
-                <span className="font-bold">Denda: Rp 2.000</span>
-              </Button>
+              {memberInfo && memberInfo.totalUnpaidFines > 0 ? (
+                <Button variant="outline" size="sm" className="relative rounded-xl text-xs gap-1.5 border-rose-200 text-rose-700 bg-rose-50/50 hover:bg-rose-100">
+                  <ReceiptText className="h-4 w-4" />
+                  <span className="font-bold">Denda: Rp {memberInfo.totalUnpaidFines.toLocaleString("id-ID")}</span>
+                </Button>
+              ) : (
+                <Button variant="ghost" size="sm" className="relative rounded-xl text-xs gap-1.5 text-muted-foreground hover:bg-muted">
+                  <ReceiptText className="h-4 w-4" />
+                  <span>Denda: Rp 0</span>
+                </Button>
+              )}
             </Link>
 
             <div className="relative">
@@ -187,9 +223,17 @@ export default function AnggotaLayout({
               </Button>
             </div>
 
-            <Link href="/dashboard/profil" className="flex items-center gap-2 pl-2 border-l border-border">
+            <Link href="/dashboard/profil" className="flex items-center gap-2 pl-2 border-l border-border" title={memberInfo?.name || "Profil"}>
               <div className="h-9 w-9 rounded-full bg-primary text-primary-foreground flex items-center justify-center font-bold text-xs shadow-sm">
-                BS
+                {initials}
+              </div>
+              <div className="hidden md:block text-left">
+                <p className="text-xs font-bold text-foreground leading-tight truncate max-w-[120px]">
+                  {memberInfo?.name || "Anggota"}
+                </p>
+                <p className="text-[10px] text-muted-foreground font-mono">
+                  {memberInfo?.nisNim || "..."}
+                </p>
               </div>
             </Link>
           </div>

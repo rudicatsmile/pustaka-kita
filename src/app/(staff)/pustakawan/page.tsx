@@ -25,10 +25,33 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { DUMMY_LOANS, DUMMY_FINES, DUMMY_BOOKS } from "@/data/dummy";
+import { getPustakawanDashboardStats } from "@/actions/staff";
+import { useEffect, useState } from "react";
 
 export default function DasborPustakawanPage() {
-  const recentLoans = DUMMY_LOANS.slice(0, 4);
+  const [stats, setStats] = useState<{
+    activeLoansCount: number;
+    overdueLoansCount: number;
+    unpaidFinesCount: number;
+    waitingFinesCount: number;
+    waitingResCount: number;
+    recentLoans: any[];
+  }>({
+    activeLoansCount: 0,
+    overdueLoansCount: 0,
+    unpaidFinesCount: 0,
+    waitingFinesCount: 0,
+    waitingResCount: 0,
+    recentLoans: [],
+  });
+
+  useEffect(() => {
+    getPustakawanDashboardStats().then((res) => {
+      if (res) setStats(res);
+    });
+  }, []);
+
+  const recentLoans = stats.recentLoans;
 
   return (
     <div className="space-y-8">
@@ -69,27 +92,14 @@ export default function DasborPustakawanPage() {
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
         <Card className="rounded-2xl border border-border p-5 space-y-3 shadow-sm">
           <div className="flex items-center justify-between">
-            <span className="text-xs font-semibold text-muted-foreground">Peminjaman Hari Ini</span>
+            <span className="text-xs font-semibold text-muted-foreground">Peminjaman Aktif</span>
             <div className="h-9 w-9 rounded-xl bg-primary/10 text-primary flex items-center justify-center">
               <ArrowLeftRight className="h-5 w-5" />
             </div>
           </div>
           <div>
-            <p className="font-heading text-3xl font-extrabold text-foreground">8</p>
-            <p className="text-[11px] text-emerald-600 font-semibold mt-1">↑ +2 dibanding kemarin</p>
-          </div>
-        </Card>
-
-        <Card className="rounded-2xl border border-border p-5 space-y-3 shadow-sm">
-          <div className="flex items-center justify-between">
-            <span className="text-xs font-semibold text-muted-foreground">Pengembalian Hari Ini</span>
-            <div className="h-9 w-9 rounded-xl bg-emerald-100 text-emerald-700 flex items-center justify-center">
-              <CheckCircle2 className="h-5 w-5" />
-            </div>
-          </div>
-          <div>
-            <p className="font-heading text-3xl font-extrabold text-foreground">12</p>
-            <p className="text-[11px] text-muted-foreground mt-1">100% tepat waktu</p>
+            <p className="font-heading text-3xl font-extrabold text-foreground">{stats.activeLoansCount}</p>
+            <p className="text-[11px] text-muted-foreground mt-1">Eksemplar sedang dipinjam</p>
           </div>
         </Card>
 
@@ -103,8 +113,8 @@ export default function DasborPustakawanPage() {
             </div>
           </div>
           <div>
-            <p className="font-heading text-3xl font-extrabold text-rose-700">2</p>
-            <p className="text-[11px] text-rose-600 font-semibold mt-1">Total denda: Rp 7.000</p>
+            <p className="font-heading text-3xl font-extrabold text-rose-700">{stats.overdueLoansCount}</p>
+            <p className="text-[11px] text-rose-600 font-semibold mt-1">Melewati jatuh tempo</p>
           </div>
         </Card>
 
@@ -118,12 +128,30 @@ export default function DasborPustakawanPage() {
             </div>
           </div>
           <div>
-            <p className="font-heading text-3xl font-extrabold text-amber-800">1</p>
+            <p className="font-heading text-3xl font-extrabold text-amber-800">{stats.waitingFinesCount}</p>
             <Link
               href="/pustakawan/denda"
               className="text-[11px] text-primary hover:underline font-bold mt-1 inline-block"
             >
               Periksa Bukti Transfer →
+            </Link>
+          </div>
+        </Card>
+
+        <Card className="rounded-2xl border border-border p-5 space-y-3 shadow-sm">
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-semibold text-muted-foreground">Reservasi Menunggu</span>
+            <div className="h-9 w-9 rounded-xl bg-secondary/15 text-secondary flex items-center justify-center">
+              <Clock className="h-5 w-5" />
+            </div>
+          </div>
+          <div>
+            <p className="font-heading text-3xl font-extrabold text-foreground">{stats.waitingResCount}</p>
+            <Link
+              href="/pustakawan/reservasi"
+              className="text-[11px] text-secondary hover:underline font-bold mt-1 inline-block"
+            >
+              Kelola Antrean →
             </Link>
           </div>
         </Card>

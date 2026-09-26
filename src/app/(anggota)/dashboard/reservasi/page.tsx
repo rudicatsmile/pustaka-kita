@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import {
@@ -15,17 +15,43 @@ import {
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
-import { DUMMY_RESERVATIONS, ReservationItem } from "@/data/dummy";
+import { getMemberReservations } from "@/actions/member";
+import { cancelReservationAction } from "@/actions/reservations";
 import { toast } from "@/components/ui/sonner";
 
 export default function ReservasiSayaPage() {
-  const [reservations, setReservations] = useState<ReservationItem[]>(DUMMY_RESERVATIONS);
+  const [reservations, setReservations] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  const handleCancel = (id: string, title: string) => {
-    setReservations((prev) => prev.filter((r) => r.id !== id));
-    toast.success("Reservasi Dibatalkan", {
-      description: `Antrean reservasi untuk buku "${title}" telah dihapus.`,
-    });
+  const loadReservations = async () => {
+    try {
+      const data = await getMemberReservations();
+      setReservations(data);
+    } catch (e) {
+      console.error("Gagal memuat reservasi:", e);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    loadReservations();
+  }, []);
+
+  const handleCancel = async (id: string, title: string) => {
+    try {
+      const res = await cancelReservationAction(id);
+      if (res.success) {
+        toast.success("Reservasi Dibatalkan", {
+          description: `Antrean reservasi untuk buku "${title}" telah dihapus.`,
+        });
+        loadReservations();
+      } else {
+        toast.error("Gagal membatalkan:", { description: res.error });
+      }
+    } catch (e: any) {
+      toast.error("Terjadi kesalahan:", { description: e.message });
+    }
   };
 
   return (
@@ -35,11 +61,15 @@ export default function ReservasiSayaPage() {
           Reservasi Buku Saya
         </h1>
         <p className="text-xs text-muted-foreground">
-          Pantau antrean buku yang sedang Anda pesan saat stok fisik habis.
+          Pantau antrean buku yang sedang Anda pesan saat stok fisik habis langsung dari database.
         </p>
       </div>
 
-      {reservations.length === 0 ? (
+      {loading ? (
+        <div className="p-12 text-center text-xs text-muted-foreground">
+          Memuat data antrean reservasi dari database...
+        </div>
+      ) : reservations.length === 0 ? (
         <Card className="rounded-2xl border-dashed border-border p-12 text-center space-y-3">
           <BookmarkCheck className="mx-auto h-12 w-12 text-muted-foreground/60" />
           <h3 className="font-heading text-base font-bold text-foreground">
@@ -48,7 +78,7 @@ export default function ReservasiSayaPage() {
           <p className="text-xs text-muted-foreground max-w-sm mx-auto">
             Anda belum melakukan pemesanan antrean buku. Cari buku di katalog untuk memesan.
           </p>
-          <Link href="/dashboard/katalog">
+          <Link href="/katalog">
             <Button size="sm" className="font-bold text-xs mt-2">
               Jelajahi Katalog Buku
             </Button>
@@ -67,13 +97,19 @@ export default function ReservasiSayaPage() {
             >
               <div className="flex gap-4">
                 <div className="relative h-28 w-20 shrink-0 overflow-hidden rounded-xl border bg-muted shadow-sm">
-                  <Image
-                    src={item.coverUrl}
-                    alt={item.bookTitle}
-                    fill
-                    className="object-cover"
-                    sizes="80px"
-                  />
+                  {item.coverUrl ? (
+                    <Image
+                      src={item.coverUrl}
+                      alt={item.bookTitle}
+                      fill
+                      className="object-cover"
+                      sizes="80px"
+                    />
+                  ) : (
+                    <div className="h-full w-full flex items-center justify-center text-xs font-bold text-muted-foreground">
+                      Buku
+                    </div>
+                  )}
                 </div>
                 <div className="space-y-1.5 min-w-0 flex-1">
                   <div className="flex items-center justify-between gap-2">
@@ -93,7 +129,7 @@ export default function ReservasiSayaPage() {
                   <p className="text-xs text-muted-foreground">Diajukan: {item.reservedAt}</p>
                   {item.readyAt && (
                     <p className="text-xs font-semibold text-emerald-700 dark:text-emerald-400">
-                      Batas Pengambilan: {item.expiresAt} (2×24 Jam)
+                      Batas Pengambilan: {item.readyAt} (2×24 Jam)
                     </p>
                   )}
                 </div>

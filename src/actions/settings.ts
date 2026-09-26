@@ -66,3 +66,60 @@ export async function updateSettingsAction(
   revalidatePath("/admin/whatsapp");
   return { success: true, message: "Pengaturan berhasil disimpan!" };
 }
+
+export async function getSettingsAction() {
+  if (db) {
+    try {
+      const allSettings = await db.query.settings.findMany();
+      const bankAccountSetting = allSettings.find((s) => s.key === "bank_account");
+      const bankVal = (bankAccountSetting?.value as any) || {};
+
+      return {
+        bankName: bankVal.bankName || "Bank Mandiri",
+        bankAccountNumber: bankVal.accountNumber || "1370012345678",
+        bankAccountName: bankVal.accountName || "SMK Nusantara - Perpustakaan PustakaKitaCeria",
+      };
+    } catch (e) {
+      console.warn("DB getSettings error, fallback:", e);
+    }
+  }
+
+  return {
+    bankName: "Bank Mandiri",
+    bankAccountNumber: "1370012345678",
+    bankAccountName: "SMK Nusantara - Perpustakaan PustakaKitaCeria",
+  };
+}
+
+export async function getInstitutionSettingsAction() {
+  if (db) {
+    try {
+      const allSettings = await db.query.settings.findMany();
+      const institutionSetting = allSettings.find((s) => s.key === "institution");
+      if (institutionSetting?.value) {
+        return institutionSetting.value as any;
+      }
+    } catch (e) {
+      console.warn("DB getInstitutionSettings error, fallback:", e);
+    }
+  }
+
+  return {
+    institutionName: "SMK Nusantara Jakarta",
+    libraryName: "Perpustakaan PustakaKitaCeria",
+    tagline: "Membuka Jendela Dunia dengan Ceria",
+    address: "Jl. Pendidikan No. 45, Kompleks Kampus Merdeka, Jakarta Selatan 12340",
+    phone: "+62 21 7890 1234",
+    email: "perpustakaan@smknusantara.sch.id",
+    operationalHours: "Senin - Jumat: 07.30 - 16.00 WIB | Sabtu: 08.00 - 12.00 WIB",
+    maxActiveLoans: 3,
+    loanDurationDays: 7,
+    dailyFineAmount: 1000,
+    maxRenewCount: 1,
+    bankName: "Bank Mandiri",
+    bankAccountNumber: "137-00-1234567-8",
+    bankAccountName: "SMK Nusantara - Perpustakaan PustakaKitaCeria",
+  };
+}
+
+

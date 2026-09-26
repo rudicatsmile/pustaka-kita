@@ -1,21 +1,15 @@
 "use client";
 
-import { useState } from "react";
-import Link from "next/link";
+import { useState, useEffect } from "react";
 import {
-  BarChart3,
-  TrendingUp,
   Download,
-  Calendar,
   FileSpreadsheet,
-  FileText,
-  BookOpen,
-  Receipt,
-  Users,
+  Loader2,
+  RefreshCw,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Card, CardContent } from "@/components/ui/card";
+import { Card } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Table,
@@ -25,11 +19,40 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { DUMMY_BOOKS, DUMMY_LOANS } from "@/data/dummy";
 import { toast } from "@/components/ui/sonner";
+import { getPustakawanReportsAction } from "@/actions/staff";
+import { getBooksAction } from "@/actions/books";
+import { BookItem } from "@/types";
 
 export default function LaporanPage() {
-  const [period, setPeriod] = useState("november-2024");
+  const [reports, setReports] = useState({
+    totalLoans: 0,
+    returnedLoans: 0,
+    overdueLoans: 0,
+    totalFinesRevenue: 0,
+  });
+  const [books, setBooks] = useState<BookItem[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+
+  async function loadData() {
+    setIsLoading(true);
+    try {
+      const [reportsData, booksData] = await Promise.all([
+        getPustakawanReportsAction(),
+        getBooksAction(),
+      ]);
+      setReports(reportsData);
+      setBooks((booksData?.books as BookItem[]) || []);
+    } catch (e: any) {
+      toast.error("Gagal memuat analitik: " + (e.message || "Error"));
+    } finally {
+      setIsLoading(false);
+    }
+  }
+
+  useEffect(() => {
+    loadData();
+  }, []);
 
   const handleExportPDF = () => {
     toast.success("Mengekspor Laporan ke PDF 📄", {
@@ -38,12 +61,31 @@ export default function LaporanPage() {
   };
 
   const handleExportCSV = () => {
-    toast.success("Mengekspor Data ke CSV 📊", {
-      description: "File rekapitulasi-sirkulasi.csv berhasil diunduh.",
-    });
+    if (books.length === 0) {
+      toast.error("Tidak ada data untuk diekspor");
+      return;
+    }
+    const headers = ["Judul", "Penulis", "Kategori", "ISBN", "Total Eksemplar"];
+    const rows = books.map((b) => [
+      `"${b.title.replace(/"/g, '""')}"`,
+      `"${b.author.replace(/"/g, '""')}"`,
+      `"${b.category}"`,
+      `"${b.isbn}"`,
+      b.totalCopies,
+    ]);
+    const csvContent = [headers.join(","), ...rows.map((r) => r.join(","))].join("\n");
+    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.setAttribute("href", url);
+    link.setAttribute("download", `laporan-katalog-${new Date().toISOString().split("T")[0]}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    toast.success("Data CSV Berhasil Diunduh 📊");
   };
 
-  // Mock chart data
+  // Mock chart data for weekly trend
   const monthlyStats = [
     { day: "Senin", pinjam: 18, kembali: 14 },
     { day: "Selasa", pinjam: 24, kembali: 20 },
@@ -54,6 +96,10 @@ export default function LaporanPage() {
   ];
 
   const maxVal = Math.max(...monthlyStats.map((s) => Math.max(s.pinjam, s.kembali)));
+  const returnRate =
+    reports.totalLoans > 0
+      ? ((reports.returnedLoans / reports.totalLoans) * 100).toFixed(1)
+      : "100.0";
 
   return (
     <div className="space-y-6">
@@ -68,6 +114,16 @@ export default function LaporanPage() {
         </div>
 
         <div className="flex items-center gap-2">
+          <Button
+            onClick={loadData}
+            variant="ghost"
+            size="sm"
+            disabled={isLoading}
+            className="h-8 gap-1.5 text-xs font-semibold"
+          >
+            <RefreshCw className={`h-3.5 w-3.5 ${isLoading ? "animate-spin" : ""}`} />
+            Segarkan
+          </Button>
           <Button onClick={handleExportCSV} variant="outline" size="sm" className="font-bold text-xs gap-1.5">
             <FileSpreadsheet className="h-4 w-4 text-emerald-600" />
             Ekspor CSV
@@ -82,27 +138,33 @@ export default function LaporanPage() {
       {/* Metric Stat Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <Card className="rounded-2xl border border-border p-5 space-y-2 shadow-sm">
-          <span className="text-xs font-semibold text-muted-foreground">Total Peminjaman Bulan Ini</span>
-          <p className="font-heading text-2xl font-extrabold text-foreground">116 Buku</p>
-          <p className="text-[11px] text-emerald-600 font-bold">↑ +14% dari bulan lalu</p>
+          <span className="text-xs font-semibold text-muted-foreground">Total Transaksi Peminjaman</span>
+          <p className="font-heading text-2xl font-extrabold text-foreground">
+            {reports.totalLoans} Buku
+          </p>
+          <p className="text-[11px] text-emerald-600 font-bold">Aktif di sistem database</p>
         </Card>
 
         <Card className="rounded-2xl border border-border p-5 space-y-2 shadow-sm">
           <span className="text-xs font-semibold text-muted-foreground">Rasio Pengembalian Tepat Waktu</span>
-          <p className="font-heading text-2xl font-extrabold text-emerald-600">92.4%</p>
+          <p className="font-heading text-2xl font-extrabold text-emerald-600">{returnRate}%</p>
           <p className="text-[11px] text-muted-foreground">Target institusi: &gt; 90%</p>
         </Card>
 
         <Card className="rounded-2xl border border-border p-5 space-y-2 shadow-sm">
           <span className="text-xs font-semibold text-muted-foreground">Pendapatan Denda Terkumpul</span>
-          <p className="font-heading text-2xl font-extrabold text-primary">Rp 48.000</p>
+          <p className="font-heading text-2xl font-extrabold text-primary">
+            Rp {reports.totalFinesRevenue.toLocaleString("id-ID")}
+          </p>
           <p className="text-[11px] text-muted-foreground">Dialokasikan untuk pemeliharaan buku</p>
         </Card>
 
         <Card className="rounded-2xl border border-border p-5 space-y-2 shadow-sm">
-          <span className="text-xs font-semibold text-muted-foreground">Anggota Paling Aktif</span>
-          <p className="font-heading text-lg font-bold text-foreground">Raka Aditya P.</p>
-          <p className="text-[11px] text-muted-foreground">21 kali peminjaman buku</p>
+          <span className="text-xs font-semibold text-muted-foreground">Koleksi Terdaftar</span>
+          <p className="font-heading text-2xl font-extrabold text-foreground">
+            {books.length} Judul
+          </p>
+          <p className="text-[11px] text-muted-foreground">Siap dipinjam civitas</p>
         </Card>
       </div>
 
@@ -110,8 +172,8 @@ export default function LaporanPage() {
       <Tabs defaultValue="peminjaman" className="space-y-6">
         <TabsList className="grid grid-cols-3 max-w-lg">
           <TabsTrigger value="peminjaman">1. Tren Sirkulasi</TabsTrigger>
-          <TabsTrigger value="koleksi">2. Buku Terpopuler</TabsTrigger>
-          <TabsTrigger value="keterlambatan">3. Rekap Denda</TabsTrigger>
+          <TabsTrigger value="koleksi">2. Katalog Buku ({books.length})</TabsTrigger>
+          <TabsTrigger value="keterlambatan">3. Status Sirkulasi</TabsTrigger>
         </TabsList>
 
         {/* 1. Tren Sirkulasi Chart */}
@@ -172,63 +234,84 @@ export default function LaporanPage() {
         {/* 2. Buku Terpopuler */}
         <TabsContent value="koleksi">
           <Card className="rounded-2xl border border-border shadow-sm overflow-hidden">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead className="text-xs">Peringkat</TableHead>
-                  <TableHead className="text-xs">Judul Buku</TableHead>
-                  <TableHead className="text-xs">Penulis</TableHead>
-                  <TableHead className="text-xs">Kategori</TableHead>
-                  <TableHead className="text-xs">Total Dipinjam</TableHead>
-                  <TableHead className="text-xs text-right">Rating Pembaca</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {DUMMY_BOOKS.map((b, idx) => (
-                  <TableRow key={b.id}>
-                    <TableCell className="font-heading font-black text-sm text-primary">
-                      #{idx + 1}
-                    </TableCell>
-                    <TableCell className="font-heading font-bold text-xs text-foreground">
-                      {b.title}
-                    </TableCell>
-                    <TableCell className="text-xs">{b.author}</TableCell>
-                    <TableCell>
-                      <Badge variant="secondary" className="text-[10px]">
-                        {b.category}
-                      </Badge>
-                    </TableCell>
-                    <TableCell className="font-mono text-xs font-bold">
-                      {b.readCount} kali
-                    </TableCell>
-                    <TableCell className="text-right font-bold text-amber-500 text-xs">
-                      ⭐ {b.rating} / 5.0
-                    </TableCell>
+            {isLoading ? (
+              <div className="flex h-48 items-center justify-center">
+                <Loader2 className="h-6 w-6 animate-spin text-primary" />
+                <span className="ml-2 text-xs text-muted-foreground">Memuat data koleksi...</span>
+              </div>
+            ) : (
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead className="text-xs">No.</TableHead>
+                    <TableHead className="text-xs">Judul Buku</TableHead>
+                    <TableHead className="text-xs">Penulis</TableHead>
+                    <TableHead className="text-xs">Kategori</TableHead>
+                    <TableHead className="text-xs">Jumlah Salinan</TableHead>
+                    <TableHead className="text-xs text-right">Tersedia</TableHead>
                   </TableRow>
-                ))}
-              </TableBody>
-            </Table>
+                </TableHeader>
+                <TableBody>
+                  {books.length === 0 ? (
+                    <TableRow>
+                      <TableCell colSpan={6} className="text-center text-xs text-muted-foreground py-8">
+                        Belum ada koleksi buku terdaftar.
+                      </TableCell>
+                    </TableRow>
+                  ) : (
+                    books.map((b, idx) => (
+                      <TableRow key={b.id}>
+                        <TableCell className="font-heading font-black text-xs text-primary">
+                          #{idx + 1}
+                        </TableCell>
+                        <TableCell className="font-heading font-bold text-xs text-foreground">
+                          {b.title}
+                        </TableCell>
+                        <TableCell className="text-xs">{b.author}</TableCell>
+                        <TableCell>
+                          <Badge variant="secondary" className="text-[10px]">
+                            {b.category}
+                          </Badge>
+                        </TableCell>
+                        <TableCell className="font-mono text-xs font-bold">
+                          {b.totalCopies} eksemplar
+                        </TableCell>
+                        <TableCell className="text-right font-bold text-emerald-600 text-xs">
+                          {b.availableCopies} di rak
+                        </TableCell>
+                      </TableRow>
+                    ))
+                  )}
+                </TableBody>
+              </Table>
+            )}
           </Card>
         </TabsContent>
 
-        {/* 3. Rekap Denda */}
+        {/* 3. Rekap Denda & Sirkulasi */}
         <TabsContent value="keterlambatan">
           <Card className="rounded-2xl border border-border p-6 shadow-sm space-y-4">
             <h3 className="font-heading text-base font-bold text-foreground">
-              Rekapitulasi Denda Keterlambatan Bulan Berjalan
+              Rekapitulasi Sirkulasi & Denda Keterlambatan
             </h3>
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 text-xs">
               <div className="rounded-xl bg-muted/40 p-4 space-y-1">
-                <span className="text-muted-foreground">Total Tagihan Terbit:</span>
-                <p className="font-mono text-lg font-bold text-foreground">Rp 55.000</p>
+                <span className="text-muted-foreground">Total Transaksi Pengembalian:</span>
+                <p className="font-mono text-lg font-bold text-foreground">
+                  {reports.returnedLoans} Transaksi
+                </p>
+              </div>
+              <div className="rounded-xl bg-amber-50 dark:bg-amber-950/20 p-4 space-y-1">
+                <span className="text-amber-700">Peminjaman Terlambat:</span>
+                <p className="font-mono text-lg font-bold text-amber-700">
+                  {reports.overdueLoans} Buku
+                </p>
               </div>
               <div className="rounded-xl bg-emerald-50 dark:bg-emerald-950/20 p-4 space-y-1">
-                <span className="text-emerald-700">Telah Diverifikasi Lunas:</span>
-                <p className="font-mono text-lg font-bold text-emerald-700">Rp 48.000</p>
-              </div>
-              <div className="rounded-xl bg-rose-50 dark:bg-rose-950/20 p-4 space-y-1">
-                <span className="text-rose-700">Belum Dibayar / Tertunggak:</span>
-                <p className="font-mono text-lg font-bold text-rose-700">Rp 7.000</p>
+                <span className="text-emerald-700">Total Denda Terkumpul:</span>
+                <p className="font-mono text-lg font-bold text-emerald-700">
+                  Rp {reports.totalFinesRevenue.toLocaleString("id-ID")}
+                </p>
               </div>
             </div>
           </Card>

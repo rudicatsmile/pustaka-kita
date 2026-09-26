@@ -1,0 +1,17 @@
+export const LIBRARY_CONFIG = {
+  institutionName: "SMK Nusantara Jakarta",
+  libraryName: "Perpustakaan PustakaKitaCeria",
+  tagline: "Membuka Jendela Dunia dengan Ceria",
+  libraryAddress: "Jl. Pendidikan No. 45, Kompleks Kampus Merdeka, Jakarta Selatan 12340",
+  libraryPhone: "+62 21 7890 1234",
+  libraryEmail: "perpustakaan@smknusantara.sch.id",
+  whatsappSenderNumber: "0812-3456-7890",
+  operationalHours: "Senin – Jumat: 07.30 – 16.00 WIB | Sabtu: 08.00 – 13.00 WIB",
+  maxActiveLoans: 3,
+  loanDurationDays: 7,
+  dailyFineAmount: 1000,
+  maxRenewCount: 1,
+  bankName: "Bank Mandiri",
+  bankAccountNumber: "137-00-1234567-8",
+  bankAccountName: "SMK Nusantara - Perpustakaan PustakaKitaCeria",
+};

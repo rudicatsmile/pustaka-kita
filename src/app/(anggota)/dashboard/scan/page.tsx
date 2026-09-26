@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   QrCode,
   Barcode,
@@ -15,15 +15,16 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
-import { DUMMY_COPIES, DUMMY_BOOKS, CURRENT_USER } from "@/data/dummy";
 import { BarcodeScanner } from "@/components/scanner/barcode-scanner";
-import { borrowBookAction, returnBookAction } from "@/actions/circulation";
+import { borrowBookAction, returnBookAction, lookupBookCopyAction } from "@/actions/circulation";
+import { getActiveMemberUser } from "@/actions/member";
 import { toast } from "@/components/ui/sonner";
 
 export default function ScanMandiriPage() {
   const [scanMode, setScanMode] = useState<"pinjam" | "kembali">("pinjam");
   const [inputCode, setInputCode] = useState("");
   const [isProcessing, setIsProcessing] = useState(false);
+  const [user, setUser] = useState<any>(null);
   const [scannedResult, setScannedResult] = useState<{
     code: string;
     title: string;
@@ -31,22 +32,31 @@ export default function ScanMandiriPage() {
     shelf: string;
   } | null>(null);
 
-  const simulateScan = (code: string) => {
-    const copy = DUMMY_COPIES.find(
-      (c) => c.copyCode.toLowerCase() === code.trim().toLowerCase()
-    ) || DUMMY_COPIES[0];
-    const book = DUMMY_BOOKS.find((b) => b.id === copy.bookId) || DUMMY_BOOKS[0];
+  useEffect(() => {
+    getActiveMemberUser().then((u) => setUser(u));
+  }, []);
 
-    setScannedResult({
-      code: copy.copyCode,
-      title: book.title,
-      author: book.author,
-      shelf: copy.shelfLocation,
-    });
-
-    toast.success("Barcode Terdeteksi! 🎯", {
-      description: `Kode: ${copy.copyCode} — "${book.title}"`,
-    });
+  const handleScan = async (code: string) => {
+    try {
+      const res = await lookupBookCopyAction(code);
+      if (res.success && res.copy) {
+        setScannedResult({
+          code: res.copy.copyCode,
+          title: res.copy.title,
+          author: res.copy.author,
+          shelf: res.copy.shelf,
+        });
+        toast.success("Barcode Terdeteksi! 🎯", {
+          description: `Kode: ${res.copy.copyCode} — "${res.copy.title}" (${res.copy.status})`,
+        });
+      } else {
+        toast.error("Barcode Tidak Ditemukan", {
+          description: res.error || "Pastikan barcode eksemplar terdaftar di sistem.",
+        });
+      }
+    } catch (e: any) {
+      toast.error("Gagal memeriksa barcode:", { description: e.message });
+    }
   };
 
   const handleManualSubmit = (e: React.FormEvent) => {
@@ -55,7 +65,7 @@ export default function ScanMandiriPage() {
       toast.error("Harap masukkan kode barcode eksemplar!");
       return;
     }
-    simulateScan(inputCode.trim());
+    handleScan(inputCode.trim());
   };
 
   const handleConfirmTransaction = async () => {
@@ -65,14 +75,14 @@ export default function ScanMandiriPage() {
     try {
       if (scanMode === "pinjam") {
         const res = await borrowBookAction({
-          memberNisNim: CURRENT_USER.nisNim,
+          memberNisNim: user?.nisNim || "2024001",
           copyCode: scannedResult.code,
           isSelfCheckout: true,
         });
 
         if (res.success) {
           toast.success("Peminjaman Mandiri Berhasil! 📚", {
-            description: `Buku "${scannedResult.title}" berhasil dipinjam. Batas kembali: 7 hari. Audit Log tercatat.`,
+            description: `Buku "${scannedResult.title}" berhasil dipinjam. Batas kembali: 7 hari. Transaksi tercatat di database.`,
           });
           setScannedResult(null);
           setInputCode("");
@@ -86,7 +96,7 @@ export default function ScanMandiriPage() {
 
         if (res.success) {
           toast.success("Pengembalian Mandiri Berhasil! ✨", {
-            description: `Buku "${scannedResult.title}" berhasil dikembalikan. Audit Log tercatat.`,
+            description: `Buku "${scannedResult.title}" berhasil dikembalikan ke perpustakaan.`,
           });
           setScannedResult(null);
           setInputCode("");
@@ -111,7 +121,7 @@ export default function ScanMandiriPage() {
           Scan Barcode Mandiri
         </h1>
         <p className="text-xs sm:text-sm text-muted-foreground">
-          Gunakan kamera gawai untuk meminjam atau mengembalikan buku tanpa perlu antre di meja sirkulasi.
+          Gunakan kamera gawai untuk meminjam atau mengembalikan buku secara langsung ke database.
         </p>
       </div>
 
@@ -148,23 +158,22 @@ export default function ScanMandiriPage() {
       </div>
 
       {/* Real html5-qrcode Camera Viewfinder */}
-      <BarcodeScanner onScan={simulateScan} scannerId="member-scan-reader" />
+      <BarcodeScanner onScan={handleScan} scannerId="member-scan-reader" />
 
-
-      {/* Quick Test Barcode Chips (Untuk kemudahan pengujian Fase 1) */}
+      {/* Quick Test Barcode Chips */}
       <div className="rounded-2xl border border-border bg-card p-4 space-y-2">
         <span className="text-xs font-bold text-muted-foreground uppercase tracking-wide block">
-          ⚡ Simulasi Scan Barcode (Klik untuk Uji Cepat):
+          ⚡ Kode Barcode Eksemplar Terdaftar di Database (Klik untuk Uji Cepat):
         </span>
         <div className="flex flex-wrap gap-2">
-          {DUMMY_COPIES.slice(0, 4).map((copy) => (
+          {["PKC-2024-001-001", "PKC-2024-001-002", "PKC-2024-002-001", "PKC-2024-003-001"].map((code) => (
             <button
-              key={copy.id}
-              onClick={() => simulateScan(copy.copyCode)}
+              key={code}
+              onClick={() => handleScan(code)}
               className="rounded-xl border border-border bg-muted/60 px-3 py-1.5 text-xs font-mono font-bold text-foreground hover:border-primary hover:bg-primary/10 transition-all flex items-center gap-1.5"
             >
               <Barcode className="h-3.5 w-3.5 text-primary" />
-              <span>{copy.copyCode}</span>
+              <span>{code}</span>
             </button>
           ))}
         </div>
@@ -223,7 +232,9 @@ export default function ScanMandiriPage() {
             </div>
             <div className="flex justify-between">
               <span className="text-muted-foreground">Peminjam:</span>
-              <strong className="text-foreground">Budi Santoso (NIS 2024001)</strong>
+              <strong className="text-foreground font-mono">
+                {user?.name || "Anggota"} ({user?.nisNim || "NIS"})
+              </strong>
             </div>
             {scanMode === "pinjam" && (
               <div className="flex justify-between">
@@ -242,10 +253,11 @@ export default function ScanMandiriPage() {
               Scan Ulang
             </Button>
             <Button
+              disabled={isProcessing}
               onClick={handleConfirmTransaction}
               className="font-bold text-xs shadow-md"
             >
-              Konfirmasi {scanMode === "pinjam" ? "Pinjam" : "Kembalikan"}
+              {isProcessing ? "Memproses..." : `Konfirmasi ${scanMode === "pinjam" ? "Pinjam" : "Kembalikan"}`}
               <ArrowRight className="ml-1.5 h-4 w-4" />
             </Button>
           </div>

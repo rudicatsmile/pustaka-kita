@@ -1,6 +1,7 @@
 import { Metadata } from "next";
 import { Suspense } from "react";
 import { KatalogPageClient } from "@/components/katalog/katalog-page-client";
+import { getBooksAction } from "@/actions/books";
 
 export const metadata: Metadata = {
   title: "Katalog Buku OPAC Online | PustakaKitaCeria",
@@ -15,7 +16,9 @@ export const metadata: Metadata = {
   },
 };
 
-export default function KatalogPage() {
+export default async function KatalogPage() {
+  const { books, categories } = await getBooksAction();
+
   return (
     <Suspense
       fallback={
@@ -24,7 +27,7 @@ export default function KatalogPage() {
         </div>
       }
     >
-      <KatalogPageClient />
+      <KatalogPageClient initialBooks={books as any} initialCategories={categories} />
     </Suspense>
   );
 }

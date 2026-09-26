@@ -1,6 +1,6 @@
 import { Metadata } from "next";
 import { notFound } from "next/navigation";
-import { DUMMY_BOOKS, DUMMY_COPIES } from "@/data/dummy";
+import { getBookBySlugAction } from "@/actions/books";
 import { sanitizeHtml, stripHtml } from "@/lib/sanitize";
 import { BookDetailClient } from "@/components/katalog/book-detail-client";
 
@@ -10,9 +10,15 @@ interface PageProps {
 
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
   const resolved = await params;
-  const book = DUMMY_BOOKS.find((b) => b.slug === resolved.slug) || DUMMY_BOOKS[0];
+  const { book } = await getBookBySlugAction(resolved.slug);
 
-  const plainDesc = stripHtml(book.synopsis).substring(0, 160);
+  if (!book) {
+    return {
+      title: "Buku Tidak Ditemukan | PustakaKitaCeria",
+    };
+  }
+
+  const plainDesc = stripHtml(book.synopsis || "").substring(0, 160);
   const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "https://pustakakitaceria.sch.id";
   const canonicalUrl = `${baseUrl}/katalog/${book.slug}`;
 
@@ -49,17 +55,13 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
 
 export default async function BookDetailPage({ params }: PageProps) {
   const resolved = await params;
-  const book = DUMMY_BOOKS.find((b) => b.slug === resolved.slug) || DUMMY_BOOKS[0];
+  const { book, copies } = await getBookBySlugAction(resolved.slug);
 
   if (!book) {
     notFound();
   }
 
-  const copies = DUMMY_COPIES.filter((c) =>
-    c.bookTitle.toLowerCase().includes(book.title.toLowerCase().split(" ")[0])
-  );
-
-  const cleanSynopsis = sanitizeHtml(book.synopsis);
+  const cleanSynopsis = sanitizeHtml(book.synopsis || "");
 
   // Structured Data (JSON-LD) for Google Rich Snippets: Book & Library
   const jsonLd = {
@@ -86,11 +88,11 @@ export default async function BookDetailPage({ params }: PageProps) {
             ? "https://schema.org/EBook"
             : "https://schema.org/Hardcover",
         "image": book.coverUrl,
-        "description": stripHtml(book.synopsis),
+        "description": stripHtml(book.synopsis || ""),
         "aggregateRating": {
           "@type": "AggregateRating",
-          "ratingValue": book.rating.toString(),
-          "reviewCount": book.readCount.toString(),
+          "ratingValue": (book.rating || 4.8).toString(),
+          "reviewCount": (book.readCount || 10).toString(),
         },
       },
       {
@@ -116,8 +118,8 @@ export default async function BookDetailPage({ params }: PageProps) {
         dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
       />
       <BookDetailClient
-        book={book}
-        copies={copies}
+        book={book as any}
+        copies={copies as any}
         sanitizedSynopsis={cleanSynopsis}
       />
     </>
