@@ -29,6 +29,7 @@ import {
   LifeBuoy,
   Brain,
   MapPin,
+  Globe,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -44,6 +45,7 @@ export default function StaffLayout({
   const pustakawanMenu = [
     { href: "/pustakawan", label: "Dasbor Pustakawan", icon: LayoutDashboard },
     { href: "/pustakawan/buku", label: "Katalog & Bibliografi", icon: BookCopy },
+    { href: "/pustakawan/copy-cataloging", label: "Copy Cataloging Z39.50", icon: Globe, badge: "Z39.50" },
     { href: "/pustakawan/eksemplar", label: "Eksemplar & Barcode", icon: Barcode },
     { href: "/pustakawan/sirkulasi", label: "Sirkulasi Pinjam/Kembali", icon: ArrowLeftRight, highlight: true },
     { href: "/pustakawan/stock-opname", label: "Stock Opname & Audit Rak", icon: Boxes },

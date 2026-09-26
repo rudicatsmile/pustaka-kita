@@ -13,6 +13,7 @@ import {
   Barcode,
   Layers,
   Sparkles,
+  Globe,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -87,12 +88,20 @@ export default function ManajemenBukuPage() {
           </p>
         </div>
 
-        <Link href="/pustakawan/buku/baru">
-          <Button size="sm" className="font-bold text-xs gap-1.5 shadow-sm">
-            <BookPlus className="h-4 w-4" />
-            Tambah Buku Baru
-          </Button>
-        </Link>
+        <div className="flex items-center gap-2">
+          <Link href="/pustakawan/copy-cataloging">
+            <Button size="sm" variant="outline" className="font-bold text-xs gap-1.5 shadow-xs border-primary/40 text-primary hover:bg-primary/10">
+              <Globe className="h-4 w-4" />
+              Copy Cataloging Z39.50
+            </Button>
+          </Link>
+          <Link href="/pustakawan/buku/baru">
+            <Button size="sm" className="font-bold text-xs gap-1.5 shadow-sm">
+              <BookPlus className="h-4 w-4" />
+              Tambah Buku Baru
+            </Button>
+          </Link>
+        </div>
       </div>
 
       {/* Filter and Search Bar */}

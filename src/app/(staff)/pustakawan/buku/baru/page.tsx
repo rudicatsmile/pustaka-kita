@@ -10,6 +10,8 @@ import {
   Save,
   FileCheck,
   Sparkles,
+  Zap,
+  Loader2,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -18,6 +20,7 @@ import { toast } from "@/components/ui/sonner";
 import { createBookAction } from "@/actions/books";
 import { getAllCategoriesAction } from "@/actions/admin";
 import { getMasterShelvesAction, type MasterShelf } from "@/actions/shelves";
+import { fetchBibliographicByIsbnAction } from "@/actions/copy-cataloging";
 import { useEffect } from "react";
 
 export default function TambahBukuBaruPage() {
@@ -36,6 +39,38 @@ export default function TambahBukuBaruPage() {
   const [synopsis, setSynopsis] = useState("");
   const [coverName, setCoverName] = useState("");
   const [isSaving, setIsSaving] = useState(false);
+  const [isFetchingZ3950, setIsFetchingZ3950] = useState(false);
+
+  const handleQuickFetchZ3950 = async () => {
+    if (!isbn.trim()) {
+      toast.error("Masukkan nomor ISBN terlebih dahulu untuk ditarik otomatis.");
+      return;
+    }
+
+    setIsFetchingZ3950(true);
+    try {
+      const res = await fetchBibliographicByIsbnAction(isbn);
+      if (res.success && res.data) {
+        const d = res.data;
+        setTitle(d.title);
+        setAuthor(d.author);
+        setPublisher(d.publisher);
+        setYear(String(d.publicationYear));
+        setPages(String(d.pages));
+        setSynopsis(d.synopsis);
+        setShelfLocation(`${d.suggestedShelfCode} (${d.suggestedShelfName})`);
+        toast.success("Data Bibliografi Z39.50 Berhasil Ditarik! ⚡📚", {
+          description: `Sumber: ${d.sourceServerName}. Call Number: ${d.callNumber}`,
+        });
+      } else {
+        toast.error("Gagal menarik data ISBN:", { description: res.error });
+      }
+    } catch (e: any) {
+      toast.error("Terjadi error Z39.50:", { description: e.message });
+    } finally {
+      setIsFetchingZ3950(false);
+    }
+  };
 
   useEffect(() => {
     getAllCategoriesAction().then((cats) => {
@@ -179,13 +214,45 @@ export default function TambahBukuBaruPage() {
               />
             </div>
             <div className="space-y-1.5">
-              <label className="text-xs font-bold text-foreground">Nomor ISBN</label>
-              <Input
-                value={isbn}
-                onChange={(e) => setIsbn(e.target.value)}
-                placeholder="978-..."
-                className="font-mono text-xs"
-              />
+              <div className="flex items-center justify-between">
+                <label className="text-xs font-bold text-foreground">Nomor ISBN</label>
+                <button
+                  type="button"
+                  onClick={handleQuickFetchZ3950}
+                  disabled={isFetchingZ3950}
+                  className="text-[10px] text-primary hover:underline font-bold flex items-center gap-1 cursor-pointer"
+                  title="Tarik otomatis metadata dari Perpusnas RI & LoC"
+                >
+                  {isFetchingZ3950 ? <Loader2 className="h-2.5 w-2.5 animate-spin" /> : <Zap className="h-2.5 w-2.5 text-amber-500" />}
+                  Tarik Z39.50
+                </button>
+              </div>
+              <div className="flex gap-1.5">
+                <Input
+                  value={isbn}
+                  onChange={(e) => setIsbn(e.target.value)}
+                  placeholder="Contoh: 978-602-06-3317-6"
+                  className="font-mono text-xs flex-1"
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") {
+                      e.preventDefault();
+                      handleQuickFetchZ3950();
+                    }
+                  }}
+                />
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  disabled={isFetchingZ3950}
+                  onClick={handleQuickFetchZ3950}
+                  className="h-10 text-xs px-2.5 font-bold gap-1 rounded-xl shrink-0"
+                  title="Tarik metadata otomatis dari Perpustakaan Nasional RI"
+                >
+                  <Zap className="h-3.5 w-3.5 text-amber-500" />
+                  <span className="hidden sm:inline">Tarik</span>
+                </Button>
+              </div>
             </div>
           </div>
 
