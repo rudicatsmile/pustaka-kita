@@ -240,12 +240,15 @@ export default function AnggotaLayout({
         </header>
 
         {/* Page Content */}
-        <main className="flex-1 p-4 pb-24 sm:p-6 lg:p-8 lg:pb-12 max-w-7xl w-full mx-auto">
+        <main className="flex-1 p-4 pb-32 sm:p-6 lg:p-8 lg:pb-12 max-w-7xl w-full mx-auto">
           {children}
         </main>
 
         {/* Mobile Bottom Navigation Bar */}
-        <nav className="lg:hidden fixed bottom-0 inset-x-0 z-30 border-t border-border bg-card/95 backdrop-blur-md px-3 py-2">
+        <nav
+          className="lg:hidden fixed bottom-0 inset-x-0 z-30 border-t border-border/80 bg-card/95 backdrop-blur-md px-3 pt-2"
+          style={{ paddingBottom: "max(0.75rem, env(safe-area-inset-bottom, 0.75rem))" }}
+        >
           <div className="flex items-center justify-around">
             {bottomNavItems.map((item) => {
               const Icon = item.icon;
@@ -258,9 +261,9 @@ export default function AnggotaLayout({
                   <Link
                     key={item.href}
                     href={item.href}
-                    className="flex flex-col items-center -mt-6"
+                    className="flex flex-col items-center -mt-7 group"
                   >
-                    <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-secondary text-secondary-foreground shadow-lg transition-transform active:scale-95">
+                    <div className="flex h-13 w-13 p-3 items-center justify-center rounded-2xl bg-secondary text-secondary-foreground shadow-lg shadow-secondary/25 transition-transform active:scale-90 ring-4 ring-card">
                       <Icon className="h-6 w-6" />
                     </div>
                     <span className="text-[10px] font-bold text-secondary mt-1">
@@ -273,14 +276,17 @@ export default function AnggotaLayout({
                 <Link
                   key={item.href}
                   href={item.href}
-                  className={`flex flex-col items-center gap-1 py-1 px-2 rounded-xl transition-colors ${
+                  className={`flex flex-col items-center gap-1 py-1 px-3 rounded-2xl transition-all active:scale-95 relative ${
                     isActive
                       ? "text-primary font-bold"
                       : "text-muted-foreground hover:text-foreground"
                   }`}
                 >
-                  <Icon className="h-5 w-5" />
-                  <span className="text-[10px]">{item.label}</span>
+                  <Icon className={`h-5 w-5 ${isActive ? "text-primary stroke-[2.5]" : ""}`} />
+                  <span className="text-[10px] tracking-tight">{item.label}</span>
+                  {isActive && (
+                    <span className="h-1 w-4 rounded-full bg-primary -mb-0.5 animate-in fade-in zoom-in-50 duration-200" />
+                  )}
                 </Link>
               );
             })}

@@ -117,73 +117,160 @@ export default function StatusDendaPage() {
             <p>Anda tidak memiliki catatan keterlambatan atau tunggakan denda.</p>
           </div>
         ) : (
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead className="text-xs">Buku & Kode Eksemplar</TableHead>
-                <TableHead className="text-xs">Keterlambatan</TableHead>
-                <TableHead className="text-xs">Nominal Denda</TableHead>
-                <TableHead className="text-xs">Status Pelunasan</TableHead>
-                <TableHead className="text-xs text-right">Aksi</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
+          <>
+            {/* Mobile Card View (< 640px) */}
+            <div className="sm:hidden divide-y divide-border/60">
               {fines.map((fine) => (
-                <TableRow key={fine.id}>
-                  <TableCell>
-                    <p className="font-heading font-bold text-foreground text-xs">{fine.bookTitle}</p>
-                    <p className="font-mono text-[11px] text-primary">{fine.copyCode}</p>
-                    <p className="text-[10px] text-muted-foreground mt-0.5">{fine.reason}</p>
-                  </TableCell>
-                  <TableCell className="text-xs font-semibold text-rose-600">
-                    {fine.daysLate} Hari Telat
-                  </TableCell>
-                  <TableCell className="font-mono font-bold text-xs text-foreground">
-                    Rp {fine.amount.toLocaleString("id-ID")}
-                  </TableCell>
-                  <TableCell>
-                    {fine.status === "belum_bayar" && (
-                      <Badge variant="destructive" className="text-[10px]">
-                        Belum Bayar
-                      </Badge>
-                    )}
-                    {fine.status === "menunggu_verifikasi" && (
-                      <Badge variant="warning" className="text-[10px]">
-                        Menunggu Verifikasi
-                      </Badge>
-                    )}
-                    {fine.status === "lunas" && (
-                      <Badge variant="success" className="text-[10px]">
-                        Lunas
-                      </Badge>
-                    )}
-                  </TableCell>
-                  <TableCell className="text-right">
+                <div key={fine.id} className="p-4 space-y-3 bg-card hover:bg-muted/30 transition-colors">
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="space-y-1 flex-1">
+                      <p className="font-heading font-bold text-foreground text-sm leading-snug">
+                        {fine.bookTitle}
+                      </p>
+                      <p className="font-mono text-xs font-semibold text-primary">
+                        {fine.copyCode}
+                      </p>
+                      <p className="text-[11px] text-muted-foreground">
+                        {fine.reason}
+                      </p>
+                    </div>
+                    <div>
+                      {fine.status === "belum_bayar" && (
+                        <Badge variant="destructive" className="text-[10px] px-2 py-0.5 font-bold shadow-sm">
+                          Belum Bayar
+                        </Badge>
+                      )}
+                      {fine.status === "menunggu_verifikasi" && (
+                        <Badge variant="warning" className="text-[10px] px-2 py-0.5 font-bold">
+                          Verifikasi
+                        </Badge>
+                      )}
+                      {fine.status === "lunas" && (
+                        <Badge variant="success" className="text-[10px] px-2 py-0.5 font-bold">
+                          Lunas
+                        </Badge>
+                      )}
+                    </div>
+                  </div>
+
+                  <div className="flex items-center justify-between p-3 rounded-xl bg-muted/40 border border-border/50">
+                    <div>
+                      <span className="text-[10px] uppercase tracking-wider text-muted-foreground block">
+                        Durasi Keterlambatan
+                      </span>
+                      <span className="text-xs font-bold text-rose-600">
+                        {fine.daysLate} Hari Terlambat
+                      </span>
+                    </div>
+                    <div className="text-right">
+                      <span className="text-[10px] uppercase tracking-wider text-muted-foreground block">
+                        Nominal Denda
+                      </span>
+                      <span className="font-heading text-base font-extrabold text-foreground">
+                        Rp {fine.amount.toLocaleString("id-ID")}
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Mobile Actions */}
+                  <div className="pt-1">
                     {fine.status === "belum_bayar" ? (
-                      <Link href={`/dashboard/denda/${fine.id}/bayar`}>
-                        <Button size="sm" className="text-xs font-bold gap-1 shadow-sm">
-                          <CreditCard className="h-3.5 w-3.5" />
-                          Bayar via Transfer
+                      <Link href={`/dashboard/denda/${fine.id}/bayar`} className="block w-full">
+                        <Button className="w-full text-xs font-bold h-10 rounded-xl gap-2 active:scale-95 shadow-sm">
+                          <CreditCard className="h-4 w-4" />
+                          Bayar Tagihan via Transfer
                         </Button>
                       </Link>
                     ) : fine.proofUrl ? (
                       <Button
                         onClick={() => setSelectedProof(fine.proofUrl!)}
                         variant="outline"
-                        size="sm"
-                        className="text-xs font-bold gap-1"
+                        className="w-full text-xs font-bold h-10 rounded-xl gap-2 active:scale-95 border-border"
                       >
-                        <Eye className="h-3.5 w-3.5" />
-                        Lihat Bukti
+                        <Eye className="h-4 w-4" />
+                        Lihat Bukti Transfer
                       </Button>
                     ) : (
-                      <span className="text-xs text-muted-foreground">Selesai</span>
+                      <p className="text-[11px] text-muted-foreground text-center py-1">
+                        Pembayaran telah terverifikasi lunas.
+                      </p>
                     )}
-                  </TableCell>
-                </TableRow>
+                  </div>
+                </div>
               ))}
-            </TableBody>
-          </Table>
+            </div>
+
+            {/* Desktop Table View (>= 640px) */}
+            <div className="hidden sm:block">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead className="text-xs">Buku & Kode Eksemplar</TableHead>
+                    <TableHead className="text-xs">Keterlambatan</TableHead>
+                    <TableHead className="text-xs">Nominal Denda</TableHead>
+                    <TableHead className="text-xs">Status Pelunasan</TableHead>
+                    <TableHead className="text-xs text-right">Aksi</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {fines.map((fine) => (
+                    <TableRow key={fine.id}>
+                      <TableCell>
+                        <p className="font-heading font-bold text-foreground text-xs">{fine.bookTitle}</p>
+                        <p className="font-mono text-[11px] text-primary">{fine.copyCode}</p>
+                        <p className="text-[10px] text-muted-foreground mt-0.5">{fine.reason}</p>
+                      </TableCell>
+                      <TableCell className="text-xs font-semibold text-rose-600">
+                        {fine.daysLate} Hari Telat
+                      </TableCell>
+                      <TableCell className="font-mono font-bold text-xs text-foreground">
+                        Rp {fine.amount.toLocaleString("id-ID")}
+                      </TableCell>
+                      <TableCell>
+                        {fine.status === "belum_bayar" && (
+                          <Badge variant="destructive" className="text-[10px]">
+                            Belum Bayar
+                          </Badge>
+                        )}
+                        {fine.status === "menunggu_verifikasi" && (
+                          <Badge variant="warning" className="text-[10px]">
+                            Menunggu Verifikasi
+                          </Badge>
+                        )}
+                        {fine.status === "lunas" && (
+                          <Badge variant="success" className="text-[10px]">
+                            Lunas
+                          </Badge>
+                        )}
+                      </TableCell>
+                      <TableCell className="text-right">
+                        {fine.status === "belum_bayar" ? (
+                          <Link href={`/dashboard/denda/${fine.id}/bayar`}>
+                            <Button size="sm" className="text-xs font-bold gap-1 shadow-sm">
+                              <CreditCard className="h-3.5 w-3.5" />
+                              Bayar via Transfer
+                            </Button>
+                          </Link>
+                        ) : fine.proofUrl ? (
+                          <Button
+                            onClick={() => setSelectedProof(fine.proofUrl!)}
+                            variant="outline"
+                            size="sm"
+                            className="text-xs font-bold gap-1"
+                          >
+                            <Eye className="h-3.5 w-3.5" />
+                            Lihat Bukti
+                          </Button>
+                        ) : (
+                          <span className="text-xs text-muted-foreground">Selesai</span>
+                        )}
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
+          </>
         )}
       </Card>
 

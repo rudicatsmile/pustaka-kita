@@ -157,6 +157,24 @@ npm run build
 
 ---
 
-## 7. Rekomendasi Pengembangan Lanjutan
+## 7. Optimasi Mobile Ergonomics (Handphone-Friendly UX)
+
+Selain kapabilitas PWA, antarmuka portal anggota telah dioptimasi secara komprehensif agar ergonomis saat dioperasikan dengan satu tangan di layar ponsel:
+
+1. **Dual Responsive Layout (Card View vs Table View)**:
+   - **Layar Mobile (< 640px)**: Halaman *Riwayat Pinjam* (`/dashboard/riwayat`) dan *Status Denda* (`/dashboard/denda`) tidak lagi memaksa tabel lebar desktop tergeser menyamping, melainkan otomatis beralih menjadi format kartu (*Card List View*) yang memuat informasi esensial, tanggal jatuh tempo yang kontras, dan tombol aksi berukuran penuh ramah jempol (>44px).
+   - **Layar Desktop (>= 640px)**: Tetap menyajikan data table yang padat dan rapi.
+2. **Bottom Navigation Bar Ergonomis & Safe Area Inset**:
+   - Mendukung `env(safe-area-inset-bottom)` untuk perangkat berponi/home-bar bawah (iPhone X-16 & Android Gesture Bar).
+   - Tombol pintas melayang (*floating action*) untuk Scan Mandiri di bagian tengah bawah yang mudah dijangkau ibu jari.
+   - Indikator aktif animasi untuk memperjelas posisi menu pengguna.
+3. **Kamera Scanner Barcode Pintar**:
+   - Umpan balik getar (*Haptic Vibration Feedback* `navigator.vibrate(100)`) saat barcode buku berhasil terbaca.
+   - Tombol balik kamera (*Switch Camera*) untuk beralih antara lensa belakang dan depan.
+   - Tombol lampu kilat (*Torch / Flashlight*) pada browser perangkat Android yang mendukung `MediaTrackConstraints.torch`.
+
+---
+
+## 8. Rekomendasi Pengembangan Lanjutan
 1. **Background Sync**: Menggunakan API Service Worker `sync` agar jika anggota mengajukan reservasi saat offline, permintaan otomatis terkirim saat internet kembali aktif.
 2. **Push Notifications**: Menghubungkan Web Push API untuk notifikasi pengingat H-1 langsung ke layar kunci HP selain melalui WhatsApp.
