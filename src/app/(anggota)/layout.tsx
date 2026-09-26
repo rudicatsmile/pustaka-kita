@@ -23,6 +23,7 @@ import {
   Trophy,
   Lightbulb,
   MessageSquare,
+  HelpCircle,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -76,6 +77,7 @@ export default function AnggotaLayout({
     { href: "/dashboard/leaderboard", label: "Papan Peringkat", icon: Trophy, badge: "Top 10" },
     { href: "/dashboard/klub", label: "Klub Membaca", icon: MessageSquare, badge: "Klub" },
     { href: "/dashboard/usulan", label: "Usulan Buku", icon: Lightbulb, badge: "Wishlist" },
+    { href: "/dashboard/bantuan", label: "Pusat Bantuan", icon: HelpCircle, badge: "Helpdesk" },
     { href: "/dashboard/kartu", label: "Kartu Anggota", icon: CreditCard },
     { href: "/dashboard/profil", label: "Profil & Akun", icon: User },
   ];

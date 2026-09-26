@@ -26,6 +26,7 @@ import {
   Sparkles,
   Boxes,
   ShoppingCart,
+  LifeBuoy,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -50,6 +51,7 @@ export default function StaffLayout({
     { href: "/pustakawan/pengadaan", label: "Usulan & Pengadaan", icon: ShoppingCart, badge: "Wishlist" },
     { href: "/pustakawan/klub", label: "Klub & Resensi", icon: MessageSquare, badge: "Diskusi" },
     { href: "/pustakawan/laporan", label: "Laporan & Akreditasi", icon: BarChart3, badge: "Borang SNP" },
+    { href: "/pustakawan/bantuan", label: "Pusat Bantuan & Tiket", icon: LifeBuoy, badge: "Helpdesk" },
   ];
 
   const adminMenu = [
