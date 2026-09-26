@@ -75,6 +75,7 @@ export default function AnggotaLayout({
     { href: "/dashboard/ebook", label: "Koleksi E-Book", icon: BookMarked },
     { href: "/dashboard/denda", label: "Denda & Bayar", icon: ReceiptText },
     { href: "/dashboard/leaderboard", label: "Papan Peringkat", icon: Trophy, badge: "Top 10" },
+    { href: "/dashboard/reading-dna", label: "AI Reading DNA", icon: Sparkles, badge: "DNA" },
     { href: "/dashboard/klub", label: "Klub Membaca", icon: MessageSquare, badge: "Klub" },
     { href: "/dashboard/usulan", label: "Usulan Buku", icon: Lightbulb, badge: "Wishlist" },
     { href: "/dashboard/bantuan", label: "Pusat Bantuan", icon: HelpCircle, badge: "Helpdesk" },
